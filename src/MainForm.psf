@@ -735,10 +735,15 @@ $SubmitButton_Click={
 		$Perms = $Permissions.Split(",")
 		[psobject[]]$roleName = $Perms
 		
+		Add-ServicePrincipalPermission -ManagedIdentityID $ObjectID -Scope $roleName -ServiceType $Service
+		
+		<#
 		switch ($Service)
 		{
 			"MicrosoftGraph" {
-				Add-MicrosoftGraphPermission -ObjectID $ObjectID -roleName $roleName
+				#Add-MicrosoftGraphPermission -ObjectID $ObjectID -roleName $roleName
+				
+				Add-ServicePrincipalPermission -ManagedIdentityID $ObjectID -Scope $roleName -ServiceType $Service
 			}
 			"ExchangeOnline" {
 				Add-ExchangeOnlinePermission -ObjectID $ObjectID -roleName $roleName
@@ -747,12 +752,13 @@ $SubmitButton_Click={
 				Add-SharePointPermission -ObjectID $ObjectID -roleName $roleName
 			}
 		}
+		#>
 		
 		#[System.Windows.MessageBox]::Show("Permissions assigned successfully.", "Success", [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Information)
 		Update-Log -Message "Permissions assigned successfully."
 	}
 }
 ]]></Code>
-  <Mode>0</Mode>
+  <Mode>1</Mode>
   <Assemblies />
 </File>
