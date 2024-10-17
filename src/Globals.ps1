@@ -104,6 +104,85 @@ function ConnectToGraph
 	}
 }
 
+
+
+
+
+
+
+
+
+function Add-ServicePrincipalPermission
+{
+	param (
+		[string]$ManagedIdentityID,
+		[string]$appId,
+		[string]$Scope,		
+		[string]$ServiceType
+	)
+	
+	try
+	{		
+		switch ($ServiceType)
+		{
+			"MicrosoftGraph" {
+				$appId = '00000003-0000-0000-c000-000000000000'
+			}
+			"ExchangeOnline" {
+				$appId = '00000002-0000-0ff1-ce00-000000000000'
+			}
+			"SharePoint" {
+				$appId = '00000003-0000-0ff1-ce00-000000000000'
+			}
+			default {
+				Update-Log -Message "Invalid ServiceType specified. Valid values are 'MicrosoftGraph', 'ExchangeOnline', 'SharePoint'."
+				return
+			}
+		}
+		
+		$AppGraph = Get-MgServicePrincipal -Filter "AppId eq '$appId'"
+		$AppRole = $AppGraph.AppRoles | Where-Object { $_.Value -eq $Scope }
+		
+		if ($AppRole)
+		{
+			$existingAppRole = Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID | Where-Object { $_.ResourceId -eq $AppGraph.Id -and $_.AppRoleId -eq $AppRole.Id }
+			if ($existingAppRole)
+			{
+				Update-Log -Message "The scope '$Scope' is already assigned"
+			}
+			else
+			{
+				New-MgServicePrincipalAppRoleAssignment -PrincipalId $ManagedIdentityID -ServicePrincipalId $ManagedIdentityID -ResourceId $AppGraph.Id -AppRoleId $AppRole.Id > $null
+				$existingAppRole = Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID | Where-Object { $_.ResourceId -eq $AppGraph.Id -and $_.AppRoleId -eq $AppRole.Id }
+				if ($existingAppRole)
+				{
+					Update-Log -Message "The scope '$Scope' has been assigned"
+				}
+				else
+				{
+					Update-Log -Message "The scope '$Scope' could not be assigned"
+				}
+			}
+		}
+		else
+		{
+			Update-Log -Message "No App Role found for scope '$Scope'"
+		}
+	}
+	catch
+	{
+		Update-Log -Message "Error adding permission: $_"
+	}
+}
+
+
+
+
+
+
+
+
+
 # Define the functions from your script
 function Add-MicrosoftGraphPermission
 {
