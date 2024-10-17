@@ -348,6 +348,7 @@ $lightToolStripMenuItem_Click={
 	Set-ControlTheme -Control $formManagedIdentityPermi -Theme Light
 }
 
+
 #region Control Theme Helper Function
 <#
 	.SYNOPSIS
@@ -659,6 +660,18 @@ namespace SAPIENTypes
 }
 #endregion
 
+function Get-ManagedIdentities
+{
+	# Get managed identities
+	$global:managedIdentities = Get-MgServicePrincipal -Filter "servicePrincipalType eq 'ManagedIdentity'"
+	
+	# Populate the ComboBox with managed identities
+	foreach ($identity in $managedIdentities)
+	{
+		$comboBox.Items.Add($identity.DisplayName)
+	}
+}
+
 $buttonConnectMicrosoftGraph_Click = {
 	
 	if ($labelConnectionStatus.Text -eq "Connected" -and $buttonConnectMicrosoftGraph.Text -eq "Disconnect Microsoft Graph")
@@ -682,15 +695,9 @@ $buttonConnectMicrosoftGraph_Click = {
 	else
 	{
 		try
-		{
-			Update-Log -Message "Starting check for needed PowerShell Modules..."
-			
+		{			
 			Check-Modules
-			
-			Update-Log -Message "Check for needed PowerShell Modules complete"
-			
-			Update-Log -Message "Starting to connect to Microsoft Graph..."
-			
+					
 			ConnectToGraph
 			
 			if ($ConnectedState = $true)
@@ -715,18 +722,6 @@ $buttonConnectMicrosoftGraph_Click = {
 			Update-Log -Message "Error connecting to Microsoft Graph: $_"
 		}
 	}	
-}
-
-function Get-ManagedIdentities
-{
-	# Get managed identities
-	$global:managedIdentities = Get-MgServicePrincipal -Filter "servicePrincipalType eq 'ManagedIdentity'"
-	
-	# Populate the ComboBox with managed identities
-	foreach ($identity in $managedIdentities)
-	{
-		$comboBox.Items.Add($identity.DisplayName)
-	}
 }
 
 $combobox_SelectedIndexChanged={
