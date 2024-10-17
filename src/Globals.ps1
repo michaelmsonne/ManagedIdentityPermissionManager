@@ -42,7 +42,8 @@ function Update-Log {
 	#$textboxLog.Value.Text += "$message" + "´n"
 	
 	# Append the new log entry to the TextBox
-	$textboxLog.AppendText("$message`r`n")
+	$timestamp = Get-Date -Format "dd-MM-yyyy HH:mm:ss"
+	$textboxLog.AppendText("[$timestamp] $message`r`n")
 	
 	# Ensure the TextBox scrolls to the latest entry
 	$textboxLog.SelectionStart = $textboxLog.Text.Length
