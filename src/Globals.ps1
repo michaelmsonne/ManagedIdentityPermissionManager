@@ -111,6 +111,54 @@ function ConnectToGraph
 }
 
 
+function Get-CurrentAppRoleAssignments
+{
+	param (
+		[string]$ManagedIdentityID
+	)
+	
+	try
+	{
+		# Retrieve the current app role assignments for the specified service principal
+		$currentAppRoles = Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID
+		
+		if ($currentAppRoles)
+		{
+			Update-Log -Message "Current AppRole assignments for Managed Identity ID '$ManagedIdentityID':"
+			foreach ($appRole in $currentAppRoles)
+			{
+				# Resolve ResourceId to Service Principal Name
+				$resource = Get-MgServicePrincipal -ServicePrincipalId $appRole.ResourceId
+				$resourceName = $resource.DisplayName
+				
+				# Resolve AppRoleId to App Role Name and Value (Scope)
+				$appRoleDetails = $resource.AppRoles | Where-Object { $_.Id -eq $appRole.AppRoleId }
+				$appRoleName = $appRoleDetails.DisplayName
+				$appRoleScope = $appRoleDetails.Value
+				
+				$appRoleInfo = @"
+AppRoleAssignmentId: $($appRole.Id)
+PrincipalId: $($appRole.PrincipalId)
+ResourceId: $($appRole.ResourceId)
+ResourceName: $resourceName
+AppRoleId: $($appRole.AppRoleId)
+AppRoleName: $appRoleName
+AppRoleScope: $appRoleScope
+"@
+				Update-Log -Message $appRoleInfo
+			}
+		}
+		else
+		{
+			Update-Log -Message "No AppRole assignments found for Managed Identity ID '$ManagedIdentityID'."
+		}
+	}
+	catch
+	{
+		Update-Log -Message "Error retrieving AppRole assignments for Managed Identity ID '$ManagedIdentityID': $_"
+	}
+}
+
 
 
 function Add-ServicePrincipalPermission
