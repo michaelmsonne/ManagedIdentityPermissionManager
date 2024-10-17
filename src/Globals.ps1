@@ -54,6 +54,8 @@ function Check-Modules
 {
 	$requiredModules = @("Microsoft.Graph.Authentication", "Microsoft.Graph.Applications")
 	
+	Update-Log -Message "Starting check for needed PowerShell Modules..."
+	
 	foreach ($module in $requiredModules)
 	{
 		if (!(Get-InstalledModule -Name $module -ErrorAction SilentlyContinue))
@@ -76,10 +78,14 @@ function Check-Modules
 			}
 		}
 	}
+	
+	Update-Log -Message "Check for needed PowerShell Modules complete"
 }
 
 function ConnectToGraph
 {
+	Update-Log -Message "Starting to connect to Microsoft Graph..."
+	
 	Connect-MgGraph -NoWelcome -Scopes 'Application.Read.All', 'AppRoleAssignment.ReadWrite.All'
 	
 	# Check if the connection is successful
@@ -151,7 +157,7 @@ function Add-ServicePrincipalPermission
 			{
 				if (-not [string]::IsNullOrWhiteSpace($Scope))
 				{
-					Update-Log -Message "Processing permission '$Scope'"
+					Update-Log -Message "Processing permission '$Scope' for service '$ServiceType'"
 					$AppRole = $AppGraph.AppRoles | Where-Object { $_.Value -eq $Scope }
 					
 					if ($AppRole)
@@ -159,7 +165,7 @@ function Add-ServicePrincipalPermission
 						$existingAppRole = Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID | Where-Object { $_.ResourceId -eq $AppGraph.Id -and $_.AppRoleId -eq $AppRole.Id }
 						if ($existingAppRole)
 						{
-							Update-Log -Message "The scope '$Scope' is already assigned"
+							Update-Log -Message "The scope '$Scope' is already assigned for service '$ServiceType'"
 						}
 						else
 						{
@@ -169,22 +175,22 @@ function Add-ServicePrincipalPermission
 								$existingAppRole = Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID | Where-Object { $_.ResourceId -eq $AppGraph.Id -and $_.AppRoleId -eq $AppRole.Id }
 								if ($existingAppRole)
 								{
-									Update-Log -Message "The scope '$Scope' has been assigned"
+									Update-Log -Message "The scope '$Scope' has been assigned to service '$ServiceType'"
 								}
 								else
 								{
-									Update-Log -Message "The scope '$Scope' could not be assigned"
+									Update-Log -Message "The scope '$Scope' could not be assigned for service '$ServiceType'"
 								}
 							}
 							catch
 							{
-								Update-Log -Message "Error assigning the scope '$Scope': $_"
+								Update-Log -Message "Error assigning the scope '$Scope' for service '$ServiceType': $_"
 							}
 						}
 					}
 					else
 					{
-						Update-Log -Message "No App Role found for scope '$Scope'"
+						Update-Log -Message "No App Role found for scope '$Scope' to service '$ServiceType'"
 					}
 				}
 				else
@@ -200,7 +206,7 @@ function Add-ServicePrincipalPermission
 	}
 	catch
 	{
-		Update-Log -Message "Error adding $ServiceType permission '$Permissions': $_"
+		Update-Log -Message "Error adding service '$ServiceType' permission '$Permissions': $_"
 	}
 }
 
