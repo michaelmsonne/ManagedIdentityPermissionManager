@@ -107,22 +107,19 @@ function ConnectToGraph
 
 
 
-
-
-
-
-
 function Add-ServicePrincipalPermission
 {
 	param (
 		[string]$ManagedIdentityID,
-		[string]$appId,
-		[string]$Scope,		
+		[string]$Permissions,
 		[string]$ServiceType
 	)
 	
 	try
-	{		
+	{
+		#Update-Log -Message "Received ServiceType: '$ServiceType'"
+		#Update-Log -Message "Received Permissions: '$Permissions'"
+		
 		switch ($ServiceType)
 		{
 			"MicrosoftGraph" {
@@ -141,126 +138,70 @@ function Add-ServicePrincipalPermission
 		}
 		
 		$AppGraph = Get-MgServicePrincipal -Filter "AppId eq '$appId'"
-		$AppRole = $AppGraph.AppRoles | Where-Object { $_.Value -eq $Scope }
 		
-		if ($AppRole)
+		# Ensure Permissions is not null or empty
+		if (-not [string]::IsNullOrWhiteSpace($Permissions))
 		{
-			$existingAppRole = Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID | Where-Object { $_.ResourceId -eq $AppGraph.Id -and $_.AppRoleId -eq $AppRole.Id }
-			if ($existingAppRole)
+			# Split the permissions string into an array and trim each element
+			$Perms = $Permissions.Split(",") | ForEach-Object { $_.Trim() }
+			
+			#Update-Log -Message "Split permissions: $($Perms -join ', ')"
+			
+			foreach ($Scope in $Perms)
 			{
-				Update-Log -Message "The scope '$Scope' is already assigned"
-			}
-			else
-			{
-				New-MgServicePrincipalAppRoleAssignment -PrincipalId $ManagedIdentityID -ServicePrincipalId $ManagedIdentityID -ResourceId $AppGraph.Id -AppRoleId $AppRole.Id > $null
-				$existingAppRole = Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID | Where-Object { $_.ResourceId -eq $AppGraph.Id -and $_.AppRoleId -eq $AppRole.Id }
-				if ($existingAppRole)
+				if (-not [string]::IsNullOrWhiteSpace($Scope))
 				{
-					Update-Log -Message "The scope '$Scope' has been assigned"
+					Update-Log -Message "Processing permission '$Scope'"
+					$AppRole = $AppGraph.AppRoles | Where-Object { $_.Value -eq $Scope }
+					
+					if ($AppRole)
+					{
+						$existingAppRole = Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID | Where-Object { $_.ResourceId -eq $AppGraph.Id -and $_.AppRoleId -eq $AppRole.Id }
+						if ($existingAppRole)
+						{
+							Update-Log -Message "The scope '$Scope' is already assigned"
+						}
+						else
+						{
+							try
+							{
+								New-MgServicePrincipalAppRoleAssignment -PrincipalId $ManagedIdentityID -ServicePrincipalId $ManagedIdentityID -ResourceId $AppGraph.Id -AppRoleId $AppRole.Id > $null
+								$existingAppRole = Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID | Where-Object { $_.ResourceId -eq $AppGraph.Id -and $_.AppRoleId -eq $AppRole.Id }
+								if ($existingAppRole)
+								{
+									Update-Log -Message "The scope '$Scope' has been assigned"
+								}
+								else
+								{
+									Update-Log -Message "The scope '$Scope' could not be assigned"
+								}
+							}
+							catch
+							{
+								Update-Log -Message "Error assigning the scope '$Scope': $_"
+							}
+						}
+					}
+					else
+					{
+						Update-Log -Message "No App Role found for scope '$Scope'"
+					}
 				}
 				else
 				{
-					Update-Log -Message "The scope '$Scope' could not be assigned"
+					Update-Log -Message "Skipping empty or whitespace permission"
 				}
 			}
 		}
 		else
 		{
-			Update-Log -Message "No App Role found for scope '$Scope'"
+			Update-Log -Message "Permissions parameter is empty or null"
 		}
 	}
 	catch
 	{
-		Update-Log -Message "Error adding permission: $_"
+		Update-Log -Message "Error adding $ServiceType permission '$Permissions': $_"
 	}
 }
 
 
-
-
-
-
-
-
-
-# Define the functions from your script
-function Add-MicrosoftGraphPermission
-{
-	param (
-		[string]$ObjectID,
-		[psobject[]]$roleName
-	)
-	try
-	{
-		$msgraph = Get-MgServicePrincipal -Filter "AppId eq '00000003-0000-0000-c000-000000000000'"
-		foreach ($role in $roleName)
-		{
-			Write-Host $role
-			$Approle = $msgraph.AppRoles | Where-Object { $_.Value -eq $role }
-			if ($Approle -eq $null)
-			{
-				throw "App role '$role' not found."
-			}
-			New-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ObjectID -PrincipalId $ObjectID -ResourceId $msgraph.Id -AppRoleId $Approle.Id
-			Update-Log -Message "Added Microsoft Graph permission '$role' to service principal '$ObjectID'."
-		}
-	}
-	catch
-	{
-		Update-Log -Message "Error adding Microsoft Graph permission: $_"
-	}
-}
-
-function Add-ExchangeOnlinePermission
-{
-	param (
-		[string]$ObjectID,
-		[psobject[]]$roleName
-	)
-	try
-	{
-		$spoApp = Get-MgServicePrincipal -Filter "AppId eq '00000002-0000-0ff1-ce00-000000000000'"
-		foreach ($role in $roleName)
-		{
-			Write-Host $role
-			$appRole = $spoApp.AppRoles | Where-Object { $_.Value -eq $role }
-			if ($appRole -eq $null)
-			{
-				throw "App role '$role' not found."
-			}
-			New-MgServicePrincipalAppRoleAssignment -PrincipalId $ObjectID -ServicePrincipalId $ObjectID -ResourceId $spoApp.Id -AppRoleId $appRole.Id
-			Update-Log -Message "Added Exchange Online permission '$role' to service principal '$ObjectID'."
-		}
-	}
-	catch
-	{
-		Update-Log -Message "Error adding Exchange Online permission: $_"
-	}
-}
-
-function Add-SharePointPermission
-{
-	param (
-		[string]$ObjectID,
-		[psobject[]]$roleName
-	)
-	try
-	{
-		$spoApp = Get-MgServicePrincipal -Filter "AppId eq '00000003-0000-0ff1-ce00-000000000000'"
-		foreach ($role in $roleName)
-		{
-			Write-Host $role
-			$appRole = $spoApp.AppRoles | Where-Object { $_.Value -eq $role }
-			if ($appRole -eq $null)
-			{
-				throw "App role '$role' not found."
-			}
-			New-MgServicePrincipalAppRoleAssignment -PrincipalId $ObjectID -ServicePrincipalId $ObjectID -ResourceId $spoApp.Id -AppRoleId $appRole.Id
-			Update-Log -Message "Added SharePoint permission '$role' to service principal '$ObjectID'."
-		}
-	}
-	catch
-	{
-		Update-Log -Message "Error adding SharePoint permission: $_"
-	}
-}
