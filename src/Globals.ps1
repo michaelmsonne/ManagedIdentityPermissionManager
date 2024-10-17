@@ -117,6 +117,7 @@ function Get-CurrentAppRoleAssignments
 		[string]$ManagedIdentityID
 	)
 	
+	$result = ""
 	try
 	{
 		# Retrieve the current app role assignments for the specified service principal
@@ -124,7 +125,7 @@ function Get-CurrentAppRoleAssignments
 		
 		if ($currentAppRoles)
 		{
-			Update-Log -Message "Current AppRole assignments for Managed Identity ID '$ManagedIdentityID':"
+			$result += "Current AppRole assignments for Managed Identity ID '$ManagedIdentityID':`r`n"
 			foreach ($appRole in $currentAppRoles)
 			{
 				# Resolve ResourceId to Service Principal Name
@@ -137,26 +138,28 @@ function Get-CurrentAppRoleAssignments
 				$appRoleScope = $appRoleDetails.Value
 				
 				$appRoleInfo = @"
-AppRoleAssignmentId: $($appRole.Id)
-PrincipalId: $($appRole.PrincipalId)
-ResourceId: $($appRole.ResourceId)
-ResourceName: $resourceName
-AppRoleId: $($appRole.AppRoleId)
-AppRoleName: $appRoleName
-AppRoleScope: $appRoleScope
+AppRoleAssignmentId: '$($appRole.Id)'
+PrincipalId: '$($appRole.PrincipalId)'
+ResourceId: '$($appRole.ResourceId)'
+ResourceName: '$resourceName'
+AppRoleId: '$($appRole.AppRoleId)'
+AppRoleName: '$appRoleName'
+AppRoleScope: '$appRoleScope'
 "@
-				Update-Log -Message $appRoleInfo
+				$result += $appRoleInfo + "`r`n"
 			}
 		}
 		else
 		{
-			Update-Log -Message "No AppRole assignments found for Managed Identity ID '$ManagedIdentityID'."
+			$result += "No AppRole assignments found for Managed Identity ID '$ManagedIdentityID'.`r`n"
 		}
 	}
 	catch
 	{
-		Update-Log -Message "Error retrieving AppRole assignments for Managed Identity ID '$ManagedIdentityID': $_"
+		$result += "Error retrieving AppRole assignments for Managed Identity ID '$ManagedIdentityID': $_`r`n"
 	}
+	
+	return $result
 }
 
 
