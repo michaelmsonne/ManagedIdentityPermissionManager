@@ -177,8 +177,6 @@ AppRoleScope: '$appRoleScope'
 	return $result
 }
 
-
-
 function Add-ServicePrincipalPermission
 {
 	param (
@@ -216,8 +214,7 @@ function Add-ServicePrincipalPermission
 		
 		# Ensure Permissions is not null or empty
 		if (-not [string]::IsNullOrWhiteSpace($Permissions))
-		{
-			
+		{			
 			if ($clearExistingPermissions -eq $true)
 			{
 				# Debug logging to verify ManagedIdentityID
