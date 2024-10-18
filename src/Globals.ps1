@@ -6,6 +6,82 @@ $global:ConnectedState
 $global:managedIdentities
 $global:clearExistingPermissions
 
+function Show-InputBox
+{
+	param
+	(
+		[string]$message = $(Throw "You must enter a prompt message"),
+		[string]$title = "Input",
+		[string]$default
+	)
+	
+	[reflection.assembly]::loadwithpartialname("microsoft.visualbasic") | Out-Null
+	[microsoft.visualbasic.interaction]::InputBox($message, $title, $default)
+}
+
+function Show-MsgBox
+{
+	[CmdletBinding()]
+	param (
+		# Define the message to be displayed in the message box.
+		[Parameter(Position = 0, Mandatory = $true)]
+		[string]$Prompt,
+		# Define the title for the message box (optional).
+		[Parameter(Position = 1, Mandatory = $false)]
+		[string]$Title = "",
+		# Define the icon type for the message box (optional).
+		[Parameter(Position = 2, Mandatory = $false)]
+		[ValidateSet("Information", "Question", "Critical", "Exclamation")]
+		[string]$Icon = "Information",
+		# Define the type of buttons in the message box (optional).
+		[Parameter(Position = 3, Mandatory = $false)]
+		[ValidateSet("OKOnly", "OKCancel", "AbortRetryIgnore", "YesNoCancel", "YesNo", "RetryCancel")]
+		[string]$BoxType = "OkOnly",
+		# Define the default button for the message box (optional).
+		[Parameter(Position = 4, Mandatory = $false)]
+		[ValidateSet(1, 2, 3)]
+		[int]$DefaultButton = 1
+	)
+	
+	# Load the Microsoft.VisualBasic assembly for MessageBox handling.
+	[System.Reflection.Assembly]::LoadWithPartialName("Microsoft.VisualBasic") | Out-Null
+	
+	# Map the provided $Icon to the corresponding VB.NET enum value.
+	switch ($Icon)
+	{
+		"Question" { $vb_icon = [microsoft.visualbasic.msgboxstyle]::Question }
+		"Critical" { $vb_icon = [microsoft.visualbasic.msgboxstyle]::Critical }
+		"Exclamation" { $vb_icon = [microsoft.visualbasic.msgboxstyle]::Exclamation }
+		"Information" { $vb_icon = [microsoft.visualbasic.msgboxstyle]::Information }
+	}
+	# Map the provided $BoxType to the corresponding VB.NET enum value.
+	switch ($BoxType)
+	{
+		"OKOnly" { $vb_box = [microsoft.visualbasic.msgboxstyle]::OKOnly }
+		"OKCancel" { $vb_box = [microsoft.visualbasic.msgboxstyle]::OkCancel }
+		"AbortRetryIgnore" { $vb_box = [microsoft.visualbasic.msgboxstyle]::AbortRetryIgnore }
+		"YesNoCancel" { $vb_box = [microsoft.visualbasic.msgboxstyle]::YesNoCancel }
+		"YesNo" { $vb_box = [microsoft.visualbasic.msgboxstyle]::YesNo }
+		"RetryCancel" { $vb_box = [microsoft.visualbasic.msgboxstyle]::RetryCancel }
+	}
+	# Map the provided $DefaultButton to the corresponding VB.NET enum value.
+	switch ($Defaultbutton)
+	{
+		1 { $vb_defaultbutton = [microsoft.visualbasic.msgboxstyle]::DefaultButton1 }
+		2 { $vb_defaultbutton = [microsoft.visualbasic.msgboxstyle]::DefaultButton2 }
+		3 { $vb_defaultbutton = [microsoft.visualbasic.msgboxstyle]::DefaultButton3 }
+	}
+	
+	# Combine the icon, button type, and default button values to determine the message box style.
+	$popuptype = $vb_icon -bor $vb_box -bor $vb_defaultbutton
+	
+	# Show the message box with the provided parameters and capture the user's response.
+	$ans = [Microsoft.VisualBasic.Interaction]::MsgBox($prompt, $popuptype, $title)
+	
+	# Return the user's response.
+	return $ans
+}
+
 #Sample function that provides the location of the script
 function Get-ScriptDirectory
 {
