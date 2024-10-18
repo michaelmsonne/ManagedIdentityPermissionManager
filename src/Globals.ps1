@@ -2,8 +2,7 @@
 # Declare Global Variables and Functions here
 #--------------------------------------------
 
-$global:ConnectedState = $false
-
+$global:ConnectedState
 $global:managedIdentities
 
 #Sample function that provides the location of the script
@@ -33,6 +32,12 @@ function Get-ScriptDirectory
 
 #Sample variable that provides the location of the script
 [string]$ScriptDirectory = Get-ScriptDirectory
+
+function Get-ManagedIdentityCount
+{
+	$global:managedIdentities = Get-MgServicePrincipal -Filter "servicePrincipalType eq 'ManagedIdentity'"
+	return $global:managedIdentities.Count
+}
 
 # Function to update the log textbox
 function Update-Log {
@@ -110,7 +115,6 @@ function ConnectToGraph
 	}
 }
 
-
 function Get-CurrentAppRoleAssignments
 {
 	param (
@@ -121,6 +125,9 @@ function Get-CurrentAppRoleAssignments
 	try
 	{
 		# Retrieve the current app role assignments for the specified service principal
+		
+		Update-Log -Message "Getting permissions for '$ManagedIdentityID'"
+		
 		$currentAppRoles = Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID
 		
 		if ($currentAppRoles)
@@ -138,6 +145,7 @@ function Get-CurrentAppRoleAssignments
 				$appRoleScope = $appRoleDetails.Value
 				
 				$appRoleInfo = @"
+
 AppRoleAssignmentId: '$($appRole.Id)'
 PrincipalId: '$($appRole.PrincipalId)'
 ResourceId: '$($appRole.ResourceId)'
@@ -148,15 +156,21 @@ AppRoleScope: '$appRoleScope'
 "@
 				$result += $appRoleInfo + "`r`n"
 			}
+			
+			Update-Log -Message "Got permissions for '$ManagedIdentityID'"
 		}
 		else
 		{
 			$result += "No AppRole assignments found for Managed Identity ID '$ManagedIdentityID'.`r`n"
+			
+			Update-Log -Message "No AppRole assignments found for Managed Identity ID '$ManagedIdentityID'"
 		}
 	}
 	catch
 	{
 		$result += "Error retrieving AppRole assignments for Managed Identity ID '$ManagedIdentityID': $_`r`n"
+		
+		Update-Log -Message "Error retrieving AppRole assignments for Managed Identity ID '$ManagedIdentityID': $_"
 	}
 	
 	return $result
