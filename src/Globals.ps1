@@ -4,6 +4,7 @@
 
 $global:ConnectedState
 $global:managedIdentities
+$global:clearExistingPermissions
 
 #Sample function that provides the location of the script
 function Get-ScriptDirectory
@@ -183,8 +184,11 @@ function Add-ServicePrincipalPermission
 	param (
 		[string]$ManagedIdentityID,
 		[string]$Permissions,
-		[string]$ServiceType
+		[string]$ServiceType,
+		[bool]$clearExistingPermissions
 	)
+	
+	Write-Host "ManagedIdentityID: $ManagedIdentityID"
 	
 	try
 	{
@@ -213,6 +217,57 @@ function Add-ServicePrincipalPermission
 		# Ensure Permissions is not null or empty
 		if (-not [string]::IsNullOrWhiteSpace($Permissions))
 		{
+			
+			if ($clearExistingPermissions -eq $true)
+			{
+				# Debug logging to verify ManagedIdentityID
+				Update-Log -Message "ManagedIdentityID: $ManagedIdentityID"
+								
+				Update-Log -Message "Removing existing permissions because clear existing permissions is set"
+				
+				$AssignedPermissions = Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID
+				
+				if ($AssignedPermissions.Count -eq 0)
+				{
+					Update-Log -Message "No permissions assigned"
+				}
+				
+				foreach ($permission in $AssignedPermissions)
+				{
+					$AppId = $permission.ResourceId
+					$AllRoles = Get-MgServicePrincipal -Filter "Id eq '$AppId'"
+					$AppDisplayname = $AllRoles.DisplayName
+					$details = $AllRoles.AppRoles | Where-Object { $_.Id -eq $permission.AppRoleId }
+					$permission | Add-Member -MemberType NoteProperty -Name AppDisplayName -Value $AppDisplayname
+					$permission | Add-Member -MemberType NoteProperty -Name PermissionName -Value $details.Value
+				}
+				
+				Update-Log -Message "Current assigned permissions is:"
+				for ($i = 0; $i -lt $AssignedPermissions.Count; $i++)
+				{
+					$AssignedPermission = @($AssignedPermissions)[$i]
+					Update-Log -Message "Permission $($i + 1): service: '$($AssignedPermission.AppDisplayName)' | '$($AssignedPermission.PermissionName)'"
+				}
+				
+				foreach ($permission in $AssignedPermissions)
+				{
+					try
+					{
+						Remove-MgServicePrincipalAppRoleAssignment -AppRoleAssignmentId $permission.Id -ServicePrincipalId $ManagedIdentityID
+						Update-Log -Message "Permission for service: '$($permission.AppDisplayName)' | '$($permission.PermissionName)' has been removed"
+					}
+					catch
+					{
+						Update-Log -Message "Failed to remove permission for service '$($permission.AppDisplayName)' | '$($permission.PermissionName)': $_"
+					}
+				}
+				#Update-Log -Message "Permissions have been removed"
+			}
+			if ($clearExistingPermissions -eq $false)
+			{
+				Update-Log -Message "Set to keep existing permissions because clear existing permissions is not set"
+			}			
+			
 			# Split the permissions string into an array and trim each element
 			$Perms = $Permissions.Split(",") | ForEach-Object { $_.Trim() }
 			
@@ -255,7 +310,7 @@ function Add-ServicePrincipalPermission
 					}
 					else
 					{
-						Update-Log -Message "No App Role found for scope '$Scope' to service '$ServiceType'"
+						Update-Log -Message "No App Role found for scope '$Scope' to service '$ServiceType' - skipping"
 					}
 				}
 				else
