@@ -404,3 +404,108 @@ function Add-ServicePrincipalPermission
 }
 
 
+
+
+
+
+function Remove-ServicePrincipalPermission
+{
+	param (
+		[string]$ManagedIdentityID,
+		[string]$Permissions,
+		[string]$ServiceType
+	)
+	
+	Write-Host "ManagedIdentityID: $ManagedIdentityID"
+	
+	try
+	{
+		# Log the received parameters
+		Update-Log -Message "Managed Identity ObjectID: '$ManagedIdentityID'"
+		Update-Log -Message "Service: '$ServiceType'"
+		Update-Log -Message "Permissions: '$Permissions'"
+		
+		switch ($ServiceType)
+		{
+			"Microsoft Graph" {
+				$appId = '00000003-0000-0000-c000-000000000000'
+			}
+			"Exchange Online" {
+				$appId = '00000002-0000-0ff1-ce00-000000000000'
+			}
+			"SharePoint" {
+				$appId = '00000003-0000-0ff1-ce00-000000000000'
+			}
+			default {
+				Update-Log -Message "Invalid ServiceType specified. Valid values are 'Microsoft Graph', 'Exchange Online', 'SharePoint'."
+				return
+			}
+		}
+		
+		$AppScopes = Get-MgServicePrincipal -Filter "AppId eq '$appId'"
+		
+		if ($null -eq $AppScopes)
+		{
+			[System.Windows.Forms.MessageBox]::Show("Service principal not found.", "Error", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error)
+			return
+		}
+		
+		# Ensure Permissions is not null or empty
+		if (-not [string]::IsNullOrWhiteSpace($Permissions))
+		{
+			# Split the permissions string into an array and trim each element
+			$Perms = $Permissions.Split(",") | ForEach-Object { $_.Trim() }
+			
+			Update-Log -Message "Permissions to remove: $Perms"
+			
+			# Get the current API permissions assigned to the managed identity
+			$currentPermissions = Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID
+			
+			# Get all available permissions for the service principal
+			$allPermissions = @{ }
+			foreach ($appRole in $AppScopes.AppRoles)
+			{
+				$allPermissions[$appRole.Value] = $appRole.Id
+				#Update-Log -Message "Permissions scope id´s now: $($appRole.Id)"
+			}
+			
+			# Remove the old permission assignments
+			foreach ($permission in $Perms)
+			{
+				Update-Log -Message "Permission to be removed: $permission"
+				
+				if ($allPermissions.ContainsKey($permission.Trim()))
+				{
+					$appRoleId = $allPermissions[$permission.Trim()]
+					$existingAppRole = $currentPermissions | Where-Object { $_.AppRoleId -eq $appRoleId }
+					foreach ($role in $existingAppRole)
+					{
+						try
+						{
+							Remove-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID -AppRoleAssignmentId $role.Id
+							Update-Log -Message "The scope '$permission' has been removed from service '$ServiceType'"
+						}
+						catch
+						{
+							Update-Log -Message "Error removing the scope '$permission' from service '$ServiceType': $_"
+						}
+					}
+				}
+				else
+				{
+					Update-Log -Message "Permission '$permission' not found in available permissions for service '$ServiceType'"
+				}
+			}
+			
+			#[System.Windows.Forms.MessageBox]::Show("Permissions updated successfully.", "Success", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information)
+		}
+		else
+		{
+			Update-Log -Message "Permissions parameter is empty or null"
+		}
+	}
+	catch
+	{
+		Update-Log -Message "Error removing service '$ServiceType' permission '$Permissions': $_"
+	}
+}
