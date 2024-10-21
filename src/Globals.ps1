@@ -271,17 +271,17 @@ function Add-ServicePrincipalPermission
 		
 		switch ($ServiceType)
 		{
-			"MicrosoftGraph" {
+			"Microsoft Graph" {
 				$appId = '00000003-0000-0000-c000-000000000000'
 			}
-			"ExchangeOnline" {
+			"Exchange Online" {
 				$appId = '00000002-0000-0ff1-ce00-000000000000'
 			}
 			"SharePoint" {
 				$appId = '00000003-0000-0ff1-ce00-000000000000'
 			}
 			default {
-				Update-Log -Message "Invalid ServiceType specified. Valid values are 'MicrosoftGraph', 'ExchangeOnline', 'SharePoint'."
+				Update-Log -Message "Invalid ServiceType specified. Valid values are 'Microsoft Graph', 'Exchange Online', 'SharePoint'."
 				return
 			}
 		}
