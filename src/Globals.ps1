@@ -5,6 +5,13 @@
 $global:ConnectedState
 $global:managedIdentities
 $global:clearExistingPermissions
+$global:darkModeSateUI
+
+$global:FormVersion = "1.0.0.0"
+$global:Author = "Michael Morten Sonne"
+$global:ToolName = "Managed Identity Permission Manager"
+$global:AuthorEmail = ""
+$global:AuthorCompany = "Sonne´s Cloud"
 
 function Show-InputBox
 {
@@ -132,6 +139,7 @@ function Update-Log {
 	$textboxLog.ScrollToCaret()
 }
 
+# Function to check PowerShell Modules
 function Check-Modules
 {
 	$requiredModules = @("Microsoft.Graph.Authentication", "Microsoft.Graph.Applications")
@@ -164,6 +172,7 @@ function Check-Modules
 	Update-Log -Message "Check for needed PowerShell Modules complete"
 }
 
+# Function to connect to Microsoft Graph
 function ConnectToGraph
 {
 	Update-Log -Message "Starting to connect to Microsoft Graph..."
@@ -192,6 +201,7 @@ function ConnectToGraph
 	}
 }
 
+# Function to get current API assignments
 function Get-CurrentAppRoleAssignments
 {
 	param (
@@ -253,6 +263,7 @@ AppRoleScope: '$appRoleScope'
 	return $result
 }
 
+# Function to add API assignments
 function Add-ServicePrincipalPermission
 {
 	param (
@@ -403,6 +414,7 @@ function Add-ServicePrincipalPermission
 	}
 }
 
+# Function to remove API assignments
 function Remove-ServicePrincipalPermission
 {
 	param (
@@ -506,6 +518,7 @@ function Remove-ServicePrincipalPermission
 	}
 }
 
+# Function to reset all API assignments
 function Remove-AllServicePrincipalPermissions
 {
 	param (
