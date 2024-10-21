@@ -1117,6 +1117,11 @@ d6Hk5E/cTxSRjx8XKB7yM18imgLqKpRYyEQFisT9U//zf9Dj5bUNlwIA</Form>
 
 $formManagedIdentityPermi_Load={
 	#TODO: Initialize Form Controls here
+	
+	CheckLogPath
+	
+	Write-Log -Level INFO -Message "The application $ToolName is started"
+	
 	Set-ControlTheme $formManagedIdentityPermi -Theme Dark
 	
 	$ConnectedState = $false
@@ -1124,7 +1129,7 @@ $formManagedIdentityPermi_Load={
 	$darkModeSateUI = $true
 	
 	#$formServiceAccountsVXxxC.Text = "Service Accounts v. $FormVersion - Created by: $Author - Company: $AuthorCompany"
-	$formManagedIdentityPermi.Text = "$ToolName v. $FormVersion"
+	$formManagedIdentityPermi.Text = "$ToolName v. $FormVersion - Created by: $Author"
 	#$toolstripstatuslabelMain_CreatedBy.Text = "Created by: $Author"
 }
 
