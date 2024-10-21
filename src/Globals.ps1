@@ -13,6 +13,9 @@ $global:ToolName = "Managed Identity Permission Manager"
 $global:AuthorEmail = ""
 $global:AuthorCompany = "Sonne´s Cloud"
 
+#Get username and domain for account running this tool
+$global:UserName = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
+
 #Logfile path
 $LogPath = "$Env:USERPROFILE\AppData\Local\$global:ToolName"
 
@@ -35,13 +38,13 @@ Function CheckLogPath
 		if (Test-Path $FolderName)
 		{
 			#Write to logfile if exists
-			Write-Log -Level INFO -Message "The application log path exists: $LogPath"
+			Write-Log -Level INFO -Message "The application log path exists: '$LogPath'"
 		}
 		else
 		{
 			#Create logfile of not exists
 			New-Item $FolderName -ItemType Directory
-			Write-Log -Level INFO -Message "The application log path does not exists and is created: $LogPath"
+			Write-Log -Level INFO -Message "The application log path does not exists and is created: '$LogPath'"
 		}
 	}
 	# Catch specific types of exceptions thrown by one of those commands
@@ -99,7 +102,27 @@ Function Write-Log
 		Add-Content $logfile -Value $Line
 	}
 	
+	# Update the log TextBox in the UI
+	Update-Log -message $Message
+	
 	#HOW TO ADD A LOG ENTRY: Write-Log -Level INFO -Message "The application is started"
+}
+
+# Function to update the log textbox (UI)
+function Update-Log
+{
+	param (
+		[string]$message
+	)
+	#$textboxLog.Value.Text += "$message" + "´n"
+	
+	# Append the new log entry to the TextBox
+	$timestamp = Get-Date -Format "dd-MM-yyyy HH:mm:ss"
+	$textboxLog.AppendText("[$timestamp] $message`r`n")
+	
+	# Ensure the TextBox scrolls to the latest entry
+	$textboxLog.SelectionStart = $textboxLog.Text.Length
+	$textboxLog.ScrollToCaret()
 }
 
 function Show-InputBox
@@ -212,59 +235,46 @@ function Get-ManagedIdentityCount
 	return $global:managedIdentities.Count
 }
 
-# Function to update the log textbox
-function Update-Log {
-    param (
-        [string]$message
-    )
-	#$textboxLog.Value.Text += "$message" + "´n"
-	
-	# Append the new log entry to the TextBox
-	$timestamp = Get-Date -Format "dd-MM-yyyy HH:mm:ss"
-	$textboxLog.AppendText("[$timestamp] $message`r`n")
-	
-	# Ensure the TextBox scrolls to the latest entry
-	$textboxLog.SelectionStart = $textboxLog.Text.Length
-	$textboxLog.ScrollToCaret()
-}
-
 # Function to check PowerShell Modules
 function Check-Modules
 {
 	$requiredModules = @("Microsoft.Graph.Authentication", "Microsoft.Graph.Applications")
 	
-	Update-Log -Message "Starting check for needed PowerShell Modules..."
+	Write-Log -Level INFO -Message "Starting check for needed PowerShell Modules..."
 	
 	foreach ($module in $requiredModules)
 	{
 		if (!(Get-InstalledModule -Name $module -ErrorAction SilentlyContinue))
 		{
-			Update-Log -Message "Module '$module' is not installed. Installing..."
+			Write-Log -Level INFO -Message "Module '$module' is not installed. Installing..."
+			
 			Install-Module -Name $module -Scope CurrentUser -Force
-			Update-Log -Message "Importing module '$module'..."
+			
+			Write-Log -Level INFO -Message "Importing module '$module'..."
+			
 			Import-Module $module
 		}
 		else
 		{
 			if (!(Get-Module -Name $module))
 			{
-				Update-Log -Message "Importing module '$module'..."
+				Write-Log -Level INFO -Message "Importing module '$module'..."
 				Import-Module $module
 			}
 			else
 			{
-				Update-Log -Message "Module '$module' is already imported."
+				Write-Log -Level INFO -Message "Module '$module' is already imported."
 			}
 		}
 	}
 	
-	Update-Log -Message "Check for needed PowerShell Modules complete"
+	Write-Log -Level INFO -Message "Check for needed PowerShell Modules complete"
 }
 
 # Function to connect to Microsoft Graph
 function ConnectToGraph
 {
-	Update-Log -Message "Starting to connect to Microsoft Graph..."
+	Write-Log -Level INFO -Message "Starting to connect to Microsoft Graph..."
 	
 	Connect-MgGraph -NoWelcome -Scopes 'Application.Read.All', 'AppRoleAssignment.ReadWrite.All'
 	
@@ -274,18 +284,18 @@ function ConnectToGraph
 		$context = Get-MgContext
 		if ($context -and $context.ClientId -and $context.TenantId)
 		{
-			Update-Log -message "Successfully connected to Microsoft Graph as '$($context.Account)'"
+			Write-Log -Level INFO -Message "Successfully connected to Microsoft Graph as '$($context.Account)'"
 			$ConnectedState = $true
 		}
 		else
 		{
-			Update-Log -message "Failed to connect to Microsoft Graph. Context is incomplete."
+			Write-Log -Level ERROR -Message "Failed to connect to Microsoft Graph. Context is incomplete."
 			$ConnectedState = $false
 		}
 	}
 	catch
 	{
-		Update-Log -message "Failed to connect to Microsoft Graph. Error: $_"
+		Write-Log -Level ERROR -Message "Failed to connect to Microsoft Graph. Error: $_"
 		$ConnectedState = $false
 	}
 }
@@ -302,7 +312,7 @@ function Get-CurrentAppRoleAssignments
 	{
 		# Retrieve the current app role assignments for the specified service principal
 		
-		Update-Log -Message "Getting permissions for '$ManagedIdentityID'"
+		Write-Log -Level INFO -Message "Getting permissions for '$ManagedIdentityID'"
 		
 		$currentAppRoles = Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID
 		
@@ -333,20 +343,20 @@ AppRoleScope: '$appRoleScope'
 				$result += $appRoleInfo + "`r`n"
 			}
 			
-			Update-Log -Message "Got permissions for '$ManagedIdentityID'"
+			Write-Log -Level INFO -Message "Got permissions for '$ManagedIdentityID'"
 		}
 		else
 		{
 			$result += "No AppRole assignments found for Managed Identity ID '$ManagedIdentityID'.`r`n"
 			
-			Update-Log -Message "No AppRole assignments found for Managed Identity ID '$ManagedIdentityID'"
+			Write-Log -Level INFO -Message "No AppRole assignments found for Managed Identity ID '$ManagedIdentityID'"
 		}
 	}
 	catch
 	{
 		$result += "Error retrieving AppRole assignments for Managed Identity ID '$ManagedIdentityID': $_`r`n"
 		
-		Update-Log -Message "Error retrieving AppRole assignments for Managed Identity ID '$ManagedIdentityID': $_"
+		Write-Log -Level ERROR -Message "Error retrieving AppRole assignments for Managed Identity ID '$ManagedIdentityID': $_"
 	}
 	
 	return $result
@@ -362,7 +372,7 @@ function Add-ServicePrincipalPermission
 		[bool]$clearExistingPermissions
 	)
 	
-	Write-Host "ManagedIdentityID: $ManagedIdentityID"
+	#Write-Log -Level INFO -Message "ManagedIdentityID: $ManagedIdentityID"
 	
 	try
 	{
@@ -381,7 +391,7 @@ function Add-ServicePrincipalPermission
 				$appId = '00000003-0000-0ff1-ce00-000000000000'
 			}
 			default {
-				Update-Log -Message "Invalid ServiceType specified. Valid values are 'Microsoft Graph', 'Exchange Online', 'SharePoint'."
+				Write-Log -Level INFO -Message "Invalid ServiceType specified. Valid values are 'Microsoft Graph', 'Exchange Online', 'SharePoint'."
 				return
 			}
 		}
@@ -394,15 +404,15 @@ function Add-ServicePrincipalPermission
 			if ($clearExistingPermissions -eq $true)
 			{
 				# Debug logging to verify ManagedIdentityID
-				Update-Log -Message "ManagedIdentityID: $ManagedIdentityID"
-								
-				Update-Log -Message "Removing existing permissions because clear existing permissions is set"
+				Write-Log -Level INFO -Message "ManagedIdentityID: $ManagedIdentityID"
+				
+				Write-Log -Level INFO -Message "Removing existing permissions because clear existing permissions is set"
 				
 				$AssignedPermissions = Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID
 				
 				if ($AssignedPermissions.Count -eq 0)
 				{
-					Update-Log -Message "No permissions assigned"
+					Write-Log -Level INFO -Message "No permissions assigned"
 				}
 				
 				foreach ($permission in $AssignedPermissions)
@@ -415,11 +425,11 @@ function Add-ServicePrincipalPermission
 					$permission | Add-Member -MemberType NoteProperty -Name PermissionName -Value $details.Value
 				}
 				
-				Update-Log -Message "Current assigned permissions is:"
+				Write-Log -Level INFO -Message "Current assigned permissions is:"
 				for ($i = 0; $i -lt $AssignedPermissions.Count; $i++)
 				{
 					$AssignedPermission = @($AssignedPermissions)[$i]
-					Update-Log -Message "Permission $($i + 1): service: '$($AssignedPermission.AppDisplayName)' | '$($AssignedPermission.PermissionName)'"
+					Write-Log -Level INFO -Message "Permission $($i + 1): service: '$($AssignedPermission.AppDisplayName)' | '$($AssignedPermission.PermissionName)'"
 				}
 				
 				foreach ($permission in $AssignedPermissions)
@@ -427,18 +437,18 @@ function Add-ServicePrincipalPermission
 					try
 					{
 						Remove-MgServicePrincipalAppRoleAssignment -AppRoleAssignmentId $permission.Id -ServicePrincipalId $ManagedIdentityID
-						Update-Log -Message "Permission for service: '$($permission.AppDisplayName)' | '$($permission.PermissionName)' has been removed"
+						Write-Log -Level INFO -Message "Permission for service: '$($permission.AppDisplayName)' | '$($permission.PermissionName)' has been removed"
 					}
 					catch
 					{
-						Update-Log -Message "Failed to remove permission for service '$($permission.AppDisplayName)' | '$($permission.PermissionName)': $_"
+						Write-Log -Level ERROR -Message "Failed to remove permission for service '$($permission.AppDisplayName)' | '$($permission.PermissionName)': $_"
 					}
 				}
 				#Update-Log -Message "Permissions have been removed"
 			}
 			if ($clearExistingPermissions -eq $false)
 			{
-				Update-Log -Message "Set to keep existing permissions because clear existing permissions is not set"
+				Write-Log -Level INFO -Message "Set to keep existing permissions because clear existing permissions is not set"
 			}			
 			
 			# Split the permissions string into an array and trim each element
@@ -450,7 +460,7 @@ function Add-ServicePrincipalPermission
 			{
 				if (-not [string]::IsNullOrWhiteSpace($Scope))
 				{
-					Update-Log -Message "Processing permission '$Scope' for service '$ServiceType'"
+					Write-Log -Level INFO -Message "Processing permission '$Scope' for service '$ServiceType'"
 					$AppRole = $AppGraph.AppRoles | Where-Object { $_.Value -eq $Scope }
 					
 					if ($AppRole)
@@ -458,7 +468,7 @@ function Add-ServicePrincipalPermission
 						$existingAppRole = Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID | Where-Object { $_.ResourceId -eq $AppGraph.Id -and $_.AppRoleId -eq $AppRole.Id }
 						if ($existingAppRole)
 						{
-							Update-Log -Message "The scope '$Scope' is already assigned for service '$ServiceType'"
+							Write-Log -Level INFO -Message "The scope '$Scope' is already assigned for service '$ServiceType'"
 						}
 						else
 						{
@@ -468,38 +478,38 @@ function Add-ServicePrincipalPermission
 								$existingAppRole = Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID | Where-Object { $_.ResourceId -eq $AppGraph.Id -and $_.AppRoleId -eq $AppRole.Id }
 								if ($existingAppRole)
 								{
-									Update-Log -Message "The scope '$Scope' has been assigned to service '$ServiceType'"
+									Write-Log -Level INFO -Message "The scope '$Scope' has been assigned to service '$ServiceType'"
 								}
 								else
 								{
-									Update-Log -Message "The scope '$Scope' could not be assigned for service '$ServiceType'"
+									Write-Log -Level INFO -Message "The scope '$Scope' could not be assigned for service '$ServiceType'"
 								}
 							}
 							catch
 							{
-								Update-Log -Message "Error assigning the scope '$Scope' for service '$ServiceType': $_"
+								Write-Log -Level ERROR -Message "Error assigning the scope '$Scope' for service '$ServiceType': $_"
 							}
 						}
 					}
 					else
 					{
-						Update-Log -Message "No App Role found for scope '$Scope' to service '$ServiceType' - skipping"
+						Write-Log -Level WARN -Message "No App Role found for scope '$Scope' to service '$ServiceType' - skipping"
 					}
 				}
 				else
 				{
-					Update-Log -Message "Skipping empty or whitespace permission"
+					Write-Log -Level WARN -Message "Skipping empty or whitespace permission"
 				}
 			}
 		}
 		else
 		{
-			Update-Log -Message "Permissions parameter is empty or null"
+			Write-Log -Level INFO -Message "Permissions parameter is empty or null"
 		}
 	}
 	catch
 	{
-		Update-Log -Message "Error adding service '$ServiceType' permission '$Permissions': $_"
+		Write-Log -Level ERROR -Message "Error adding service '$ServiceType' permission '$Permissions': $_"
 	}
 }
 
@@ -512,14 +522,14 @@ function Remove-ServicePrincipalPermission
 		[string]$ServiceType
 	)
 	
-	Write-Host "ManagedIdentityID: $ManagedIdentityID"
+	#Write-Host "ManagedIdentityID: $ManagedIdentityID"
 	
 	try
 	{
 		# Log the received parameters
-		Update-Log -Message "Managed Identity ObjectID: '$ManagedIdentityID'"
-		Update-Log -Message "Service: '$ServiceType'"
-		Update-Log -Message "Permissions: '$Permissions'"
+		Write-Log -Level INFO -Message "Managed Identity ObjectID: '$ManagedIdentityID'"
+		Write-Log -Level INFO -Message "Service: '$ServiceType'"
+		Write-Log -Level INFO -Message "Permissions: '$Permissions'"
 		
 		switch ($ServiceType)
 		{
@@ -533,7 +543,7 @@ function Remove-ServicePrincipalPermission
 				$appId = '00000003-0000-0ff1-ce00-000000000000'
 			}
 			default {
-				Update-Log -Message "Invalid ServiceType specified. Valid values are 'Microsoft Graph', 'Exchange Online', 'SharePoint'."
+				Write-Log -Level INFO -Message "Invalid ServiceType specified. Valid values are 'Microsoft Graph', 'Exchange Online', 'SharePoint'."
 				return
 			}
 		}
@@ -552,7 +562,7 @@ function Remove-ServicePrincipalPermission
 			# Split the permissions string into an array and trim each element
 			$Perms = $Permissions.Split(",") | ForEach-Object { $_.Trim() }
 			
-			Update-Log -Message "Permissions to remove: $Perms"
+			Write-Log -Level INFO -Message "Permissions to remove: $Perms"
 			
 			# Get the current API permissions assigned to the managed identity
 			$currentPermissions = Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID
@@ -568,7 +578,7 @@ function Remove-ServicePrincipalPermission
 			# Remove the old permission assignments
 			foreach ($permission in $Perms)
 			{
-				Update-Log -Message "Permission to be removed: $permission"
+				Write-Log -Level INFO -Message "Permission to be removed: $permission"
 				
 				if ($allPermissions.ContainsKey($permission.Trim()))
 				{
@@ -578,19 +588,21 @@ function Remove-ServicePrincipalPermission
 					{
 						try
 						{
-							Update-Log -Message "Attempting to remove AppRoleAssignmentId: $($role.Id)"
+							Write-Log -Level INFO -Message "Attempting to remove AppRoleAssignmentId: $($role.Id)"
+							
 							Remove-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID -AppRoleAssignmentId $role.Id
-							Update-Log -Message "The scope '$permission' has been removed from service '$ServiceType'"
+							
+							Write-Log -Level INFO -Message "The scope '$permission' has been removed from service '$ServiceType'"
 						}
 						catch
 						{
-							Update-Log -Message "Error removing the scope '$permission' from service '$ServiceType': $_"
+							Write-Log -Level ERROR -Message "Error removing the scope '$permission' from service '$ServiceType': $_"
 						}
 					}
 				}
 				else
 				{
-					Update-Log -Message "Permission '$permission' not found in available permissions for service '$ServiceType'"
+					Write-Log -Level ERROR -Message "Permission '$permission' not found in available permissions for service '$ServiceType'"
 				}
 			}
 			
@@ -598,12 +610,12 @@ function Remove-ServicePrincipalPermission
 		}
 		else
 		{
-			Update-Log -Message "Permissions parameter is empty or null"
+			Write-Log -Level INFO -Message "Permissions parameter is empty or null"
 		}
 	}
 	catch
 	{
-		Update-Log -Message "Error removing service '$ServiceType' permission '$Permissions': $_"
+		Write-Log -Level ERROR -Message "Error removing service '$ServiceType' permission '$Permissions': $_"
 	}
 }
 
@@ -614,19 +626,19 @@ function Remove-AllServicePrincipalPermissions
 		[string]$ManagedIdentityID
 	)
 	
-	Update-Log -Message "ManagedIdentityID: $ManagedIdentityID"
+	#Update-Log -Message "ManagedIdentityID: $ManagedIdentityID"
 	
 	try
 	{
 		# Log the received parameters
-		Update-Log -Message "Managed Identity ObjectID: '$ManagedIdentityID'"
+		Write-Log -Level INFO -Message "Managed Identity ObjectID: '$ManagedIdentityID'"
 		
 		# Get the current API permissions assigned to the managed identity
 		$currentPermissions = Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID
 		
 		if ($currentPermissions.Count -eq 0)
 		{
-			Update-Log -Message "No permissions assigned to the managed identity."
+			Write-Log -Level INFO -Message "No permissions assigned to the managed identity."
 			return
 		}
 		
@@ -641,13 +653,15 @@ function Remove-AllServicePrincipalPermissions
 				$appRole = $servicePrincipal.AppRoles | Where-Object { $_.Id -eq $permission.AppRoleId }
 				$permissionScope = $appRole.Value
 				
-				Update-Log -Message "Attempting to remove AppRoleAssignmentId: $($permission.Id) for service: '$serviceName' with scope: '$permissionScope'"
+				Write-Log -Level INFO -Message "Attempting to remove AppRoleAssignmentId: $($permission.Id) for service: '$serviceName' with scope: '$permissionScope'"
+				
 				Remove-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID -AppRoleAssignmentId $permission.Id
-				Update-Log -Message "Permission with AppRoleAssignmentId '$($permission.Id)' for service: '$serviceName' with scope: '$permissionScope' has been removed."
+				
+				Write-Log -Level INFO -Message "Permission with AppRoleAssignmentId '$($permission.Id)' for service: '$serviceName' with scope: '$permissionScope' has been removed."
 			}
 			catch
 			{
-				Update-Log -Message "Error removing permission with AppRoleAssignmentId '$($permission.Id)' for service: '$serviceName' with scope: '$permissionScope': $_"
+				Write-Log -Level ERROR -Message "Error removing permission with AppRoleAssignmentId '$($permission.Id)' for service: '$serviceName' with scope: '$permissionScope': $_"
 			}
 		}
 		
@@ -655,6 +669,6 @@ function Remove-AllServicePrincipalPermissions
 	}
 	catch
 	{
-		Update-Log -Message "Error removing all permissions for managed identity '$ManagedIdentityID': $_"
+		Write-Log -Level ERROR -Message "Error removing all permissions for managed identity '$ManagedIdentityID': $_"
 	}
 }
