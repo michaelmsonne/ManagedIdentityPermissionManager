@@ -1080,7 +1080,41 @@ eZCf+RKBMGQjSpAImaifKBKyM/vf9B/2WVeUd9f/i66EXaUsq9P/4uA4XjUj+Ek/Z2DiWrqm/+cs
 DUkzO6TezCbCeQh2FRVs+8d5BmSWBzKU+EhYQ5SnIxiiypqw/Ztkh4gk/UQzdFY1/zct0uIgMnp1
 FXCOq18CXvbogDtcbnecKfv+iDwnmmDdG/xwWL7nEhH4fi7QT9IfZ+j8iZokwAMKFJn/c18yS0pu
 d6Hk5E/cTxSRjx8XKB7yM18imgLqKpRYyEQFisT9U//zf9Dj5bUNlwIA</Form>
-  <Code><![CDATA[
+  <Code><![CDATA[function Get-ManagedIdentities
+{
+	# Get all managed identities
+	
+	$comboBox.Items.Clear()
+	
+	# If connected
+	if ($ConnectedState = $true)
+	{
+		# Log
+		Update-Log -Message "Loading list of Managed Identity from tenant..."
+		
+		# Get all data
+		$global:managedIdentities = Get-MgServicePrincipal -Filter "servicePrincipalType eq 'ManagedIdentity'"
+		
+		# Log
+		Update-Log -Message "Loaded list Managed Identity from tenant."
+		
+		# Populate the ComboBox with managed identities
+		foreach ($identity in $managedIdentities)
+		{
+			$comboBox.Items.Add($identity.DisplayName)
+		}
+		
+		# Log
+		Update-Log -Message "List of Managed Identity updated with a total of '$(Get-ManagedIdentityCount)' Managed Identity´s"
+	}
+	# Else if not connected
+	if ($ConnectedState = $false)
+	{
+		# Log
+		Update-Log -Message "Not connected - can´t load list of Managed Identity´s"
+	}
+}
+
 $formManagedIdentityPermi_Load={
 	#TODO: Initialize Form Controls here
 	Set-ControlTheme $formManagedIdentityPermi -Theme Dark
@@ -1417,41 +1451,6 @@ namespace SAPIENTypes
 	}
 }
 #endregion
-
-function Get-ManagedIdentities
-{
-	# Get all managed identities
-	
-	$comboBox.Items.Clear()
-	
-	# If connected
-	if ($ConnectedState = $true)
-	{
-		# Log
-		Update-Log -Message "Loading list of Managed Identity from tenant..."
-		
-		# Get all data
-		$global:managedIdentities = Get-MgServicePrincipal -Filter "servicePrincipalType eq 'ManagedIdentity'"
-		
-		# Log
-		Update-Log -Message "Loaded list Managed Identity from tenant."
-		
-		# Populate the ComboBox with managed identities
-		foreach ($identity in $managedIdentities)
-		{
-			$comboBox.Items.Add($identity.DisplayName)
-		}
-		
-		# Log
-		Update-Log -Message "List of Managed Identity updated with a total of '$(Get-ManagedIdentityCount)' Managed Identity´s"
-	}
-	# Else if not connected
-	if ($ConnectedState = $false)
-	{
-		# Log
-		Update-Log -Message "Not connected - can´t load list of Managed Identity´s"
-	}	
-}
 
 $buttonConnectMicrosoftGraph_Click = {
 	
