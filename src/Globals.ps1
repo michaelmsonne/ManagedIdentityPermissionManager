@@ -403,11 +403,6 @@ function Add-ServicePrincipalPermission
 	}
 }
 
-
-
-
-
-
 function Remove-ServicePrincipalPermission
 {
 	param (
@@ -466,7 +461,7 @@ function Remove-ServicePrincipalPermission
 			foreach ($appRole in $AppScopes.AppRoles)
 			{
 				$allPermissions[$appRole.Value] = $appRole.Id
-				#Update-Log -Message "Permissions scope id´s now: $($appRole.Id)"
+				#Update-Log -Message "Available permission: $($appRole.Value) with ID: $($appRole.Id)"
 			}
 			
 			# Remove the old permission assignments
@@ -482,6 +477,7 @@ function Remove-ServicePrincipalPermission
 					{
 						try
 						{
+							Update-Log -Message "Attempting to remove AppRoleAssignmentId: $($role.Id)"
 							Remove-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID -AppRoleAssignmentId $role.Id
 							Update-Log -Message "The scope '$permission' has been removed from service '$ServiceType'"
 						}
@@ -507,5 +503,56 @@ function Remove-ServicePrincipalPermission
 	catch
 	{
 		Update-Log -Message "Error removing service '$ServiceType' permission '$Permissions': $_"
+	}
+}
+
+function Remove-AllServicePrincipalPermissions
+{
+	param (
+		[string]$ManagedIdentityID
+	)
+	
+	Update-Log -Message "ManagedIdentityID: $ManagedIdentityID"
+	
+	try
+	{
+		# Log the received parameters
+		Update-Log -Message "Managed Identity ObjectID: '$ManagedIdentityID'"
+		
+		# Get the current API permissions assigned to the managed identity
+		$currentPermissions = Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID
+		
+		if ($currentPermissions.Count -eq 0)
+		{
+			Update-Log -Message "No permissions assigned to the managed identity."
+			return
+		}
+		
+		# Remove each assigned permission
+		foreach ($permission in $currentPermissions)
+		{
+			try
+			{
+				# Get the service principal details
+				$servicePrincipal = Get-MgServicePrincipal -ServicePrincipalId $permission.ResourceId
+				$serviceName = $servicePrincipal.DisplayName
+				$appRole = $servicePrincipal.AppRoles | Where-Object { $_.Id -eq $permission.AppRoleId }
+				$permissionScope = $appRole.Value
+				
+				Update-Log -Message "Attempting to remove AppRoleAssignmentId: $($permission.Id) for service: '$serviceName' with scope: '$permissionScope'"
+				Remove-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID -AppRoleAssignmentId $permission.Id
+				Update-Log -Message "Permission with AppRoleAssignmentId '$($permission.Id)' for service: '$serviceName' with scope: '$permissionScope' has been removed."
+			}
+			catch
+			{
+				Update-Log -Message "Error removing permission with AppRoleAssignmentId '$($permission.Id)' for service: '$serviceName' with scope: '$permissionScope': $_"
+			}
+		}
+		
+		#[System.Windows.Forms.MessageBox]::Show("All permissions removed successfully.", "Success", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information)
+	}
+	catch
+	{
+		Update-Log -Message "Error removing all permissions for managed identity '$ManagedIdentityID': $_"
 	}
 }
