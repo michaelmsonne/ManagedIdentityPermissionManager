@@ -5,7 +5,7 @@
 $global:ConnectedState
 $global:managedIdentities
 $global:clearExistingPermissions
-$global:darkModeSateUI
+$global:darkModeStateUI
 
 $global:FormVersion = "1.0.0.0"
 $global:Author = "Michael Morten Sonne"
