@@ -19,6 +19,34 @@ $global:UserName = [System.Security.Principal.WindowsIdentity]::GetCurrent().Nam
 #Logfile path
 $LogPath = "$Env:USERPROFILE\AppData\Local\$global:ToolName"
 
+function Is-WindowsInDarkMode
+{
+	# Path to the registry key
+	$registryPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize"
+	$registryValueName = "AppsUseLightTheme"
+	
+	try
+	{
+		# Get the value of the registry key
+		$useLightTheme = Get-ItemProperty -Path $registryPath -Name $registryValueName -ErrorAction Stop
+		
+		# Determine the theme mode based on the registry value
+		if ($useLightTheme.$registryValueName -eq 0)
+		{
+			return $true # Dark mode
+		}
+		else
+		{
+			return $false # Light mode
+		}
+	}
+	catch
+	{
+		#Write-Error "Failed to determine Windows theme mode: $_"
+		return $false
+	}
+}
+
 #CheckLogPath function
 Function CheckLogPath
 {
