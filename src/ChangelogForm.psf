@@ -939,13 +939,13 @@ namespace SAPIENTypes
 
 #region From load
 $formChangelog_Load = {
-	
+		
 	# Load GUI state
-	if ($darkModeSateUI = $true)
+	if ($global:darkModeStateUI)
 	{
 		Set-ControlTheme -Control $formChangelog -Theme Dark
 	}
-	if ($darkModeSateUI = $false)
+	else
 	{
 		Set-ControlTheme -Control $formChangelog -Theme Light
 	}
