@@ -272,7 +272,7 @@ function Check-Modules
 	
 	foreach ($module in $requiredModules)
 	{
-		if (!(Get-InstalledModule -Name $module -ErrorAction SilentlyContinue))
+		if (!(Get-Module -Name $module -ListAvailable -ErrorAction SilentlyContinue))
 		{
 			Write-Log -Level INFO -Message "Module '$module' is not installed. Installing..."
 			
@@ -340,13 +340,13 @@ function Get-CurrentAppRoleAssignments
 	{
 		# Retrieve the current app role assignments for the specified service principal
 		
-		Write-Log -Level INFO -Message "Getting permissions for '$ManagedIdentityID'"
+		Write-Log -Level INFO -Message "Getting permissions for Managed Identity with Id: '$ManagedIdentityID'"
 		
 		$currentAppRoles = Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID
 		
 		if ($currentAppRoles)
 		{
-			$result += "Current AppRole assignments for Managed Identity ID '$ManagedIdentityID':`r`n"
+			$result += "Current permissions assignments for Managed Identity ID '$ManagedIdentityID':`r`n"
 			foreach ($appRole in $currentAppRoles)
 			{
 				# Resolve ResourceId to Service Principal Name
@@ -372,7 +372,7 @@ AppRoleScope: '$appRoleScope'
 				$result += $appRoleInfo + "`r`n"
 			}
 			
-			Write-Log -Level INFO -Message "Got permissions for '$ManagedIdentityID'"
+			Write-Log -Level INFO -Message "Got current assigned permissions for Managed Identity ID '$ManagedIdentityID'"
 		}
 		else
 		{
@@ -383,9 +383,9 @@ AppRoleScope: '$appRoleScope'
 	}
 	catch
 	{
-		$result += "Error retrieving AppRole assignments for Managed Identity ID '$ManagedIdentityID': $_`r`n"
+		$result += "Error retrieving access scopes assignments for Managed Identity ID '$ManagedIdentityID': $_`r`n"
 		
-		Write-Log -Level ERROR -Message "Error retrieving AppRole assignments for Managed Identity ID '$ManagedIdentityID': $_"
+		Write-Log -Level ERROR -Message "Error retrieving access scopes assignments for Managed Identity ID '$ManagedIdentityID': $_"
 	}
 	
 	return $result
