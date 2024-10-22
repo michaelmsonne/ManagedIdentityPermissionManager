@@ -1328,62 +1328,6 @@ function Get-AssignableApiPermissionScopes
 	}
 }
 
-
-
-
-<#
-function Get-AssignableApiPermissionScopes
-{
-	param (
-		[string]$ApiDisplayName
-	)
-	
-	try
-	{
-		# Step 1: Get the service principal for the specified API
-		Write-Log -Level INFO -Message "Retrieving service principal for API with DisplayName: $ApiDisplayName"
-		$servicePrincipal = Get-MgServicePrincipal -Filter "displayName eq '$ApiDisplayName'" -Property "id,appId,displayName,appRoles,oauth2PermissionScopes,resourceSpecificApplicationPermissions"
-		
-		if ($null -eq $servicePrincipal)
-		{
-			Write-Log -Level INFO -Message "No service principal found with DisplayName '$ApiDisplayName'."
-			return
-		}
-		
-		Write-Log -Level INFO -Message "Service principal retrieved: $($servicePrincipal.DisplayName)"
-		
-		# Step 2: Extract the permission scopes (AppRoles and Oauth2PermissionScopes)
-		$appRoles = $servicePrincipal.AppRoles
-		$oauth2PermissionScopes = $servicePrincipal.Oauth2PermissionScopes
-		
-		if ($appRoles.Count -eq 0 -and $oauth2PermissionScopes.Count -eq 0)
-		{
-			Write-Log -Level INFO -Message "No assignable permission scopes found for service principal with DisplayName '$ApiDisplayName'."
-			return
-		}
-		
-		Write-Log -Level INFO -Message "Assignable permission scopes retrieved."
-		
-		# Step 4: Populate the CheckedListBox with permission scopes
-		foreach ($role in $appRoles)
-		{
-			$roleDetails = "AppRoleId: $($role.Id), AppRoleName: $($role.DisplayName), AppRoleScope: $($role.Value)"
-			$checkedlistboxPermissionsToAssign.Items.Add($roleDetails)
-		}
-		
-		foreach ($scope in $oauth2PermissionScopes)
-		{
-			$scopeDetails = "ScopeId: $($scope.Id), ScopeName: $($scope.AdminConsentDisplayName), ScopeValue: $($scope.Value)"
-			$checkedlistboxPermissionsToAssign.Items.Add($scopeDetails)
-		}		
-	}
-	catch
-	{
-		Write-Log -Level INFO -Message "Error retrieving permission scopes: $_"
-	}
-}
-#>
-
 function Get-ManagedIdentities
 {
 	# Get all managed identities
