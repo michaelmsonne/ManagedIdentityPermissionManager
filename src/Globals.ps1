@@ -510,7 +510,7 @@ function Add-ServicePrincipalPermission
 								}
 								else
 								{
-									Write-Log -Level INFO -Message "The scope '$Scope' could not be assigned for service '$ServiceType'"
+									Write-Log -Level INFO -Message "The scope '$Scope' could not be assigned for service '$ServiceType' - error: $_"
 								}
 							}
 							catch
