@@ -960,17 +960,19 @@ $formChangelog_Load = {
 
 `t   Features for this release:`n
 
-`t• Get a list of all Managed Identityes in connected tenant`n
+`t• Get a list of all Managed Identityes in connected tenant (Entra ID)`n
 `t• Get corrent assigned permission for selected Managed Identityes`n
 `t• Support one or many access scopes (for one API service at a time like Microsoft Graph)`n
 `t• Add permission to selected Managed Identity (keep current assigned permisisons)`n
-`t• Add permission to selected Managed Identity (reset current assigned permisisons so set to
-`t   what set in the tool)`n
+`t• Add permission to selected Managed Identity (reset current assigned permisisons
+`t   so set to what set in the tool)`n
 `t• Remove permission on selected Managed Identity`n
 `t• Remove ALL permission on selected Managed Identity`n
+`t• Get a list of access scopes (with filter options) to get the access scope you`n
+`t   need to add/edit`n
 `t• For user trust and confirmation, there is messages to comfirm for hight riks tasks`n
-`t• Full logs for actions performed in the tool and for changes in assigned permissions (add or
-`t   removal)`n
+`t• Full logs for actions performed in the tool and for changes in assigned permissions
+`t   (add or removal)`n
 "
 }
 #endregion]]></Code>
