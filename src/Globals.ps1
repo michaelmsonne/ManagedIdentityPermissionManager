@@ -358,11 +358,12 @@ function Get-CurrentAppRoleAssignments
 				$appRoleName = $appRoleDetails.DisplayName
 				$appRoleScope = $appRoleDetails.Value
 				
+				# PrincipalId: '$($appRole.PrincipalId)'
+				# ResourceId: '$($appRole.ResourceId)'
+				
 				$appRoleInfo = @"
 
 AppRoleAssignmentId: '$($appRole.Id)'
-PrincipalId: '$($appRole.PrincipalId)'
-ResourceId: '$($appRole.ResourceId)'
 ResourceName: '$resourceName'
 AppRoleId: '$($appRole.AppRoleId)'
 AppRoleName: '$appRoleName'
