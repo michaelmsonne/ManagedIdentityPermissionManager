@@ -973,6 +973,7 @@ $formChangelog_Load = {
 `t• For user trust and confirmation, there is messages to comfirm for hight riks tasks`n
 `t• Full logs for actions performed in the tool and for changes in assigned permissions
 `t   (add or removal)`n
+`t• And some more...`n
 "
 }
 #endregion]]></Code>
