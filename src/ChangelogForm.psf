@@ -954,7 +954,7 @@ $formChangelog_Load = {
 	
 	# Changelog text
 	$textboxChangelog.Text =
-	"1.0.0.0 (22/10/2024):`n
+	"1.0.0.0 (23/10/2024):`n
 
 `t• Initial release`n
 
