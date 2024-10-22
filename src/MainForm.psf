@@ -1206,14 +1206,14 @@ function Get-AssignableApiPermissionScopes
 		
 		if ($appRoles.Count -eq 0 -and $oauth2PermissionScopes.Count -eq 0)
 		{
-			Write-Log -Level INFO -Message "No assignable permission scopes found for service principal with AppId '$appId', Service '$($servicePrincipal.DisplayName)'."
+			Write-Log -Level INFO -Message "No assignable permission scopes found for service principal with AppId '$appId' service '$($servicePrincipal.DisplayName)'."
 			return
 		}
 		
-		Write-Log -Level INFO -Message "Assignable permission scopes retrieved for AppId '$appId', Service '$($servicePrincipal.DisplayName)'."
+		Write-Log -Level INFO -Message "Assignable permission scopes retrieved for AppId '$appId' service '$($servicePrincipal.DisplayName)'."
 		
 		# Populate the CheckedListBox with permission scopes
-		Write-Log -Level INFO -Message "Adding assignable permission scopes to permission list for AppId '$appId', Service '$($servicePrincipal.DisplayName)'..."
+		Write-Log -Level INFO -Message "Adding assignable permission scopes to permission list for AppId '$appId' service '$($servicePrincipal.DisplayName)'..."
 		
 		foreach ($role in $appRoles)
 		{
@@ -1221,7 +1221,7 @@ function Get-AssignableApiPermissionScopes
 			$checkedlistboxPermissionsToAssign.Items.Add($roleDetails)
 		}
 		
-		Write-Log -Level INFO -Message "Added all assignable permission scopes to permission list for AppId '$appId', Service '$($servicePrincipal.DisplayName)'."
+		Write-Log -Level INFO -Message "Added all assignable permission scopes to permission list for AppId '$appId' service '$($servicePrincipal.DisplayName)' to the list for management."
 		
 		<#
 		foreach ($scope in $oauth2PermissionScopes)
@@ -2150,7 +2150,7 @@ $buttonAddSelectedAccessSco_Click={
 		#>
 	}
 	
-	Write-Log -Level INFO -Message "Adding: $($selectedScopes -join ', ')"
+	Write-Log -Level INFO -Message "Adding access scope selected: '$($selectedScopes -join ', ')' to the list for permissions scopes to edit"
 	$PermissionsTextBox.Text = $selectedScopes -join ", "
 	
 	# Write-Log -Level INFO -Message "Adding: $selectedScopes"
