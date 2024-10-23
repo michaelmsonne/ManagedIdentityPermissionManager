@@ -259,53 +259,68 @@ function Get-ScriptDirectory
 
 function Get-ManagedIdentityCount
 {
+	# Get data to global data to keep
 	$global:managedIdentities = Get-MgServicePrincipal -Filter "servicePrincipalType eq 'ManagedIdentity'"
+	
+	# Return data
 	return $global:managedIdentities.Count
 }
 
 # Function to check PowerShell Modules
 function Check-Modules
 {
+	# Array of modules needed
 	$requiredModules = @("Microsoft.Graph.Authentication", "Microsoft.Graph.Applications")
 	
+	# Log
 	Write-Log -Level INFO -Message "Starting check for needed PowerShell Modules..."
 	
+	# Check every module needed for tool
 	foreach ($module in $requiredModules)
 	{
+		# Check if allready present/installed
 		if (-not (Get-Module -Name $module))
 		{
 			try
 			{
+				# Import module if found
 				Import-Module $module -ErrorAction Stop
 				
-				Write-Log -Level INFO -Message "Importing module '$module'..."
-				
-			}			
+				# Log
+				Write-Log -Level INFO -Message "Importing module '$module'..."	
+			}	
 			catch
-			{				
+			{
+				# Log
 				Write-Log -Level INFO -Message "Module '$module' is not installed. Installing..."
 				
+				# Install module
 				Install-Module -Name $module -Scope CurrentUser -Force:$true
 				
 				Write-Log -Level INFO -Message "Importing module '$module'..."
 				
+				# Import module after installed
 				Import-Module $module				
 			}
 		}
 		else
-		{			
+		{
+			# Log
 			Write-Log -Level INFO -Message "Module '$module' is already imported."
 		}
-		
-	}	
+	}
+	
+	# Log
 	Write-Log -Level INFO -Message "Check for needed PowerShell Modules complete"
 }
 
 # Function to connect to Microsoft Graph
 function ConnectToGraph
 {
+	# Log
 	Write-Log -Level INFO -Message "Starting to connect to Microsoft Graph..."
 	
+	# Connect
 	Connect-MgGraph -NoWelcome -Scopes 'Application.Read.All', 'AppRoleAssignment.ReadWrite.All'
 	
 	# Check if the connection is successful
@@ -314,18 +329,27 @@ function ConnectToGraph
 		$context = Get-MgContext
 		if ($context -and $context.ClientId -and $context.TenantId)
 		{
-			Write-Log -Level INFO -Message "Successfully connected to Microsoft Graph as '$($context.Account)'"
+			# Log
+			Write-Log -Level INFO -Message "Successfully connected to Microsoft Graph as '$($context.Account)' to tenant Id '$($context.TenantId)' via app '$($context.AppName)'."
+			
+			# Set state
 			$ConnectedState = $true
 		}
 		else
 		{
-			Write-Log -Level ERROR -Message "Failed to connect to Microsoft Graph. Context is incomplete."
+			# Log
+			Write-Log -Level ERROR -Message "Failed to connect to Microsoft Graph. Context is incomplete. Error: $_"
+			
+			# Set state
 			$ConnectedState = $false
 		}
 	}
 	catch
 	{
+		# Log
 		Write-Log -Level ERROR -Message "Failed to connect to Microsoft Graph. Error: $_"
+		
+		# Set state
 		$ConnectedState = $false
 	}
 }
@@ -342,10 +366,13 @@ function Get-CurrentAppRoleAssignments
 	{
 		# Retrieve the current app role assignments for the specified service principal
 		
+		# Log
 		Write-Log -Level INFO -Message "Getting permissions for Managed Identity with Id: '$ManagedIdentityID'"
 		
+		# Get current role assignments
 		$currentAppRoles = Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID
 		
+		# Of any roles assigned
 		if ($currentAppRoles)
 		{
 			$result += "Current permissions assignments for Managed Identity ID '$ManagedIdentityID':`r`n"
@@ -374,12 +401,14 @@ AppRoleScope: '$appRoleScope'
 				$result += $appRoleInfo + "`r`n"
 			}
 			
+			# Log
 			Write-Log -Level INFO -Message "Got current assigned permissions for Managed Identity ID '$ManagedIdentityID'"
 		}
 		else
 		{
 			$result += "No AppRole assignments found for Managed Identity ID '$ManagedIdentityID'.`r`n"
 			
+			# Log
 			Write-Log -Level INFO -Message "No AppRole assignments found for Managed Identity ID '$ManagedIdentityID'"
 		}
 	}
@@ -387,9 +416,11 @@ AppRoleScope: '$appRoleScope'
 	{
 		$result += "Error retrieving access scopes assignments for Managed Identity ID '$ManagedIdentityID': $_`r`n"
 		
+		# Log
 		Write-Log -Level ERROR -Message "Error retrieving access scopes assignments for Managed Identity ID '$ManagedIdentityID': $_"
 	}
 	
+	# Retun data
 	return $result
 }
 
