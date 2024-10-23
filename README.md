@@ -38,7 +38,7 @@ The initial release of the tool comes with several key features that make it ind
 
 To be continued...
 
-![Sample Screenshot](./docs/Managed%20Identity%20Permission%20Manager.png) *(Add screenshot links here)*
+![Sample Screenshot](./docs/Managed%20Identity%20Permission%20Manager.png)
 
 ## Development History
 From the early Proof of Concept (PoC) to the official release, this tool has evolved with new features and improvements based on feedback. Check out the development updates on LinkedIn for a behind-the-scenes look:
