@@ -51,6 +51,8 @@ Ready to take control of your Managed Identity permissions? Download the tool no
 
 > **Download the tool here (coming soon)**
 
+- [GitHub Releases](https://github.com/michaelmsonne/ManagedIdentityPermissionManager/releases)
+
 ---
 
 ## Getting Started
