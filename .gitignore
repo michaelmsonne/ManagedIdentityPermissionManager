@@ -1,4 +1,9 @@
-src/bin/x64/ServicePrincipalPermissionManagerTool.exe
-/src/bin/x64
-/src/bin
-/src/bin/x64
+/src/bin/*
+*.TempPoint.*
+*.Export.*
+*.psprojs
+*.RestorePoint.*
+*.Run.ps1
+*.Package.ps1
+CustomMenu.inf
+.\src\bin\x64\*.exe
