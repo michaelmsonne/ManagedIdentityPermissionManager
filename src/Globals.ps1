@@ -272,30 +272,32 @@ function Check-Modules
 	
 	foreach ($module in $requiredModules)
 	{
-		if (!(Get-Module -Name $module -ListAvailable -ErrorAction SilentlyContinue))
+		if (-not (Get-Module -Name $module))
 		{
-			Write-Log -Level INFO -Message "Module '$module' is not installed. Installing..."
-			
-			Install-Module -Name $module -Scope CurrentUser -Force
-			
-			Write-Log -Level INFO -Message "Importing module '$module'..."
-			
-			Import-Module $module
+			try
+			{
+				Import-Module $module -ErrorAction Stop
+				
+				Write-Log -Level INFO -Message "Importing module '$module'..."
+				
+			}			
+			catch
+			{				
+				Write-Log -Level INFO -Message "Module '$module' is not installed. Installing..."
+				
+				Install-Module -Name $module -Scope CurrentUser -Force:$true
+				
+				Write-Log -Level INFO -Message "Importing module '$module'..."
+				
+				Import-Module $module				
+			}
 		}
 		else
-		{
-			if (!(Get-Module -Name $module))
-			{
-				Write-Log -Level INFO -Message "Importing module '$module'..."
-				Import-Module $module
-			}
-			else
-			{
-				Write-Log -Level INFO -Message "Module '$module' is already imported."
-			}
+		{			
+			Write-Log -Level INFO -Message "Module '$module' is already imported."
 		}
-	}
-	
+		
+	}	
 	Write-Log -Level INFO -Message "Check for needed PowerShell Modules complete"
 }
 
