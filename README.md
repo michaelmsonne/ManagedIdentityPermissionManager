@@ -26,6 +26,7 @@
 - [Features](#features)
 - [Download](#download)
 - [Getting Started](#getting-started)
+  - [Known bugs](#known-bugs)
   - [Prerequisites](#prerequisites)
   - [Installation](#installation)
 - [Usage](#usage)
@@ -101,6 +102,13 @@ Ready to take control of your Managed Identity permissions? Download the tool no
 ---
 
 ## Getting started
+
+### Known bugs
+- When you **NOT** have access to perform the add or removal of access scopes, the error is not shown but show "success"
+
+    If you etc. test with this in a **Windows Terminal**: `Remove-MgServicePrincipalAppRoleAssignment -ServicePrincipalId 5860f5f3-xxxx-xxxx-xxxx-8bc1b876d17d -AppRoleAssignmentId 8_VgWAexdUSqfIvBuHbRfTSuB3XbyABMmmPs7Hjcg18` you getting this error: `Remove-MgServicePrincipalAppRoleAssignment : Authentication needed. Please call Connect-MgGraph.`
+
+    Need to be fixed.
 
 ### Prerequisites
 - **PowerShellMicrosoft Graph PowerShell** installed on your machine (Microsoft.Graph.Authentication, Microsoft.Graph.Applications)
