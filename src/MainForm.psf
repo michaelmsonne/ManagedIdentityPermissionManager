@@ -2211,16 +2211,21 @@ $button_ServiceAccounts_About_Click = {
 }
 
 $buttonGetAccessScopesForSe_Click = {
+	
 	#Get-AssignableApiPermissionScopes -ApiDisplayName "Microsoft Graph"
 	
+	# Get data and get permissions
 	Get-AssignableApiPermissionScopes -ServiceType "$($ServiceComboBox.Text)"
 	
 	# Call this function once to initialize the master list
 	Initialize-MasterItems
 }
 
-$buttonAddSelectedAccessSco_Click={
+$buttonAddSelectedAccessSco_Click = {
+	
 	$selectedScopes = @()
+	
+	# Loop selected scopes - add to tool for process
 	foreach ($item in $checkedlistboxPermissionsToAssign.CheckedItems)
 	{
 		# Extract the scope value from the selected item
@@ -2240,7 +2245,10 @@ $buttonAddSelectedAccessSco_Click={
 		#>
 	}
 	
+	# Log
 	Write-Log -Level INFO -Message "Adding access scope selected: '$($selectedScopes -join ', ')' to the list for permissions scopes to edit"
+	
+	# Format data
 	$PermissionsTextBox.Text = $selectedScopes -join ", "
 	
 	# Write-Log -Level INFO -Message "Adding: $selectedScopes"
@@ -2250,9 +2258,12 @@ $buttonAddSelectedAccessSco_Click={
 
 $textboxSccessScopeToAssignFilter_TextChanged={
 	
+	# Get data fo filter function
 	$filterText = $textboxSccessScopeToAssignFilter.Text
+	
 	$filteredItems = @()
 	
+	# Filter elements
 	if ($filterText -eq "" -or $null)
 	{
 		# If the filter text is empty, reset to all items
@@ -2278,8 +2289,7 @@ $textboxSccessScopeToAssignFilter_TextChanged={
 	{
 		$checkedlistboxPermissionsToAssign.Items.Add($filteredItem)
 	}
-}
-]]></Code>
+}]]></Code>
   <Mode>1</Mode>
   <Assemblies />
 </File>
