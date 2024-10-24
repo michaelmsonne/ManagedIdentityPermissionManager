@@ -1160,190 +1160,180 @@ t5y9gPjY36nANoexyG+5xV8ZENwcirFCZRF1VgBCPkRrdVFf305vhcAq3LMKfC4qd7PpOE7VIWE7
 # Master list to store all items
 $global:masterItems = @()
 
-# Populate the master list initially for access scopes found
-function Initialize-MasterItems
+#region Control Helper Functions
+function Update-ListBox
 {
-	$global:masterItems = @()
-	foreach ($item in $checkedlistboxPermissionsToAssign.Items)
-	{
-		$global:masterItems += $item
-	}
-}
-
-function Get-AssignableApiPermissionScopes
-{
-	param (
-		[string]$ServiceType
+<#
+	.SYNOPSIS
+		This functions helps you load items into a ListBox or CheckedListBox.
+	
+	.DESCRIPTION
+		Use this function to dynamically load items into the ListBox control.
+	
+	.PARAMETER ListBox
+		The ListBox control you want to add items to.
+	
+	.PARAMETER Items
+		The object or objects you wish to load into the ListBox's Items collection.
+	
+	.PARAMETER DisplayMember
+		Indicates the property to display for the items in this control.
+	
+	.PARAMETER Append
+		Adds the item(s) to the ListBox without clearing the Items collection.
+	
+	.EXAMPLE
+		Update-ListBox $ListBox1 "Red", "White", "Blue"
+	
+	.EXAMPLE
+		Update-ListBox $listBox1 "Red" -Append
+		Update-ListBox $listBox1 "White" -Append
+		Update-ListBox $listBox1 "Blue" -Append
+	
+	.EXAMPLE
+		Update-ListBox $listBox1 (Get-Process) "ProcessName"
+	
+	.NOTES
+		Additional information about the function.
+#>
+	
+	param
+	(
+		[Parameter(Mandatory = $true)]
+		[ValidateNotNull()]
+		[System.Windows.Forms.ListBox]$ListBox,
+		[Parameter(Mandatory = $true)]
+		[ValidateNotNull()]
+		$Items,
+		[Parameter(Mandatory = $false)]
+		[string]$DisplayMember,
+		[Parameter(Mandatory = $false)]
+		[string]$ValueMember,
+		[switch]$Append
 	)
 	
-	try
+	if (-not $Append)
 	{
-		# Clear list for existing ithems
-		$checkedlistboxPermissionsToAssign.Items.Clear()
-		
-		# Determine the AppId based on the ServiceType
-		switch ($ServiceType)
-		{
-			"Microsoft Graph" {
-				$appId = '00000003-0000-0000-c000-000000000000'
-			}
-			"Exchange Online" {
-				$appId = '00000002-0000-0ff1-ce00-000000000000'
-			}
-			"SharePoint" {
-				$appId = '00000003-0000-0ff1-ce00-000000000000'
-			}
-			default {
-				# Log
-				Write-Log -Level INFO -Message "Invalid ServiceType specified. Valid values are 'Microsoft Graph', 'Exchange Online', 'SharePoint'."
-				return
-			}
-		}
-		
-		# Get the service principal for the specified AppId
-		Write-Log -Level INFO -Message "Retrieving service principal for AppId: '$appId'"
-		
-		# Get needed data
-		$servicePrincipal = Get-MgServicePrincipal -Filter "AppId eq '$appId'" -Property "id,appId,displayName,appRoles,oauth2PermissionScopes,resourceSpecificApplicationPermissions"
-		
-		# Check if returned data
-		if ($null -eq $servicePrincipal)
-		{
-			# Log
-			Write-Log -Level INFO -Message "No service principal found with AppId '$appId', Service '$($servicePrincipal.DisplayName)'."
-			return
-		}
-		
-		# Log
-		Write-Log -Level INFO -Message "Service principal retrieved: AppId '$appId', '$($servicePrincipal.DisplayName)'"
-		
-		# Extract the permission scopes (AppRoles and Oauth2PermissionScopes)
-		$appRoles = $servicePrincipal.AppRoles
-		$oauth2PermissionScopes = $servicePrincipal.Oauth2PermissionScopes
-		
-		# Check if scopes assigned
-		if ($appRoles.Count -eq 0 -and $oauth2PermissionScopes.Count -eq 0)
-		{
-			# Log
-			Write-Log -Level INFO -Message "No assignable permission scopes found for service principal with AppId '$appId' service '$($servicePrincipal.DisplayName)'."
-			return
-		}
-		
-		# Log
-		Write-Log -Level INFO -Message "Assignable permission scopes retrieved for AppId '$appId' service '$($servicePrincipal.DisplayName)'."
-		
-		# Populate the CheckedListBox with permission scopes
-		Write-Log -Level INFO -Message "Adding assignable permission scopes to permission list for AppId '$appId' service '$($servicePrincipal.DisplayName)'..."
-		
-		foreach ($role in $appRoles)
-		{
-			$roleDetails = "Role details: '$($role.DisplayName)', Role scope: '$($role.Value)', RoleId: '$($role.Id)'"
-			$checkedlistboxPermissionsToAssign.Items.Add($roleDetails)
-		}
-		
-		Write-Log -Level INFO -Message "Added all assignable permission scopes to permission list for AppId '$appId' service '$($servicePrincipal.DisplayName)' to the list for management."
-		
-		<#
-		foreach ($scope in $oauth2PermissionScopes)
-		{
-			$scopeDetails = "Scope details: $($scope.AdminConsentDisplayName), ScopeValue: $($scope.Value), ScopeId: $($scope.Id)"
-			$checkedlistboxPermissionsToAssign.Items.Add($scopeDetails)
-		}
-		#>
+		$listBox.Items.Clear()
 	}
-	catch
+	
+	if ($Items -is [System.Windows.Forms.ListBox+ObjectCollection])
 	{
-		# Log
-		Write-Log -Level ERROR -Message "Error retrieving permission scopes: $_"
+		$listBox.Items.AddRange($Items)
+	}
+	elseif ($Items -is [Array])
+	{
+		$listBox.BeginUpdate()
+		foreach ($obj in $Items)
+		{
+			$listBox.Items.Add($obj)
+		}
+		$listBox.EndUpdate()
+	}
+	else
+	{
+		$listBox.Items.Add($Items)
+	}
+	
+	if ($DisplayMember)
+	{
+		$listBox.DisplayMember = $DisplayMember
+	}
+	if ($ValueMember)
+	{
+		$ListBox.ValueMember = $ValueMember
 	}
 }
 
-function Get-ManagedIdentities
+function Update-ComboBox
 {
-	# Get all managed identities
+<#
+	.SYNOPSIS
+		This functions helps you load items into a ComboBox.
 	
-	# Ckecl current data in list to not keep old
-	$comboBox.Items.Clear()
+	.DESCRIPTION
+		Use this function to dynamically load items into the ComboBox control.
 	
-	# If connected
-	if ($global:ConnectedState)
+	.PARAMETER ComboBox
+		The ComboBox control you want to add items to.
+	
+	.PARAMETER Items
+		The object or objects you wish to load into the ComboBox's Items collection.
+	
+	.PARAMETER DisplayMember
+		Indicates the property to display for the items in this control.
+		
+	.PARAMETER ValueMember
+		Indicates the property to use for the value of the control.
+	
+	.PARAMETER Append
+		Adds the item(s) to the ComboBox without clearing the Items collection.
+	
+	.EXAMPLE
+		Update-ComboBox $combobox1 "Red", "White", "Blue"
+	
+	.EXAMPLE
+		Update-ComboBox $combobox1 "Red" -Append
+		Update-ComboBox $combobox1 "White" -Append
+		Update-ComboBox $combobox1 "Blue" -Append
+	
+	.EXAMPLE
+		Update-ComboBox $combobox1 (Get-Process) "ProcessName"
+	
+	.NOTES
+		Additional information about the function.
+#>
+	
+	param
+	(
+		[Parameter(Mandatory = $true)]
+		[ValidateNotNull()]
+		[System.Windows.Forms.ComboBox]$ComboBox,
+		[Parameter(Mandatory = $true)]
+		[ValidateNotNull()]
+		$Items,
+		[Parameter(Mandatory = $false)]
+		[string]$DisplayMember,
+		[Parameter(Mandatory = $false)]
+		[string]$ValueMember,
+		[switch]$Append
+	)
+	
+	if (-not $Append)
 	{
-		# Log
-		Write-Log -Level INFO -Message "Loading list of Managed Identity from tenant..."
-		
-		# Get all data
-		$global:managedIdentities = Get-MgServicePrincipal -Filter "servicePrincipalType eq 'ManagedIdentity'"
-		
-		# Log
-		Write-Log -Level INFO -Message "Loaded list Managed Identity from tenant."
-		
-		# Populate the ComboBox with managed identities
-		foreach ($identity in $managedIdentities)
+		$ComboBox.Items.Clear()
+	}
+	
+	if ($Items -is [Object[]])
+	{
+		$ComboBox.Items.AddRange($Items)
+	}
+	elseif ($Items -is [System.Collections.IEnumerable])
+	{
+		$ComboBox.BeginUpdate()
+		foreach ($obj in $Items)
 		{
-			$comboBox.Items.Add($identity.DisplayName)
+			$ComboBox.Items.Add($obj)
 		}
-		
-		# Log
-		Write-Log -Level INFO -Message "List of Managed Identity updated with a total of '$(Get-ManagedIdentityCount)' Managed Identity´s"
-	}
-	# Else if not connected
-	else
-	{
-		# Log
-		Write-Log -Level INFO -Message "Not connected - can´t load list of Managed Identity´s"
-	}
-}
-
-$formManagedIdentityPermi_Load={
-	#TODO: Initialize Form Controls here
-	
-	CheckLogPath
-	
-	Write-Log -Level INFO -Message "The application $ToolName is started"
-	
-	$global:darkModeStateUI = Is-WindowsInDarkMode
-	
-	if ($global:darkModeStateUI)
-	{
-		Set-ControlTheme $formManagedIdentityPermi -Theme Dark
-		
-		$darkModeSateUI = $true
+		$ComboBox.EndUpdate()
 	}
 	else
 	{
-		Set-ControlTheme $formManagedIdentityPermi -Theme Light
-		
-		$darkModeSateUI = $false
+		$ComboBox.Items.Add($Items)
 	}
 	
-	$ConnectedState = $false
-	$clearExistingPermissions = $true
-	#$darkModeSateUI = $true
+	if ($DisplayMember)
+	{
+		$ComboBox.DisplayMember = $DisplayMember
+	}
 	
-	#$formServiceAccountsVXxxC.Text = "Service Accounts v. $FormVersion - Created by: $Author - Company: $AuthorCompany"
-	$formManagedIdentityPermi.Text = "$ToolName v. $FormVersion"
-	
-	$toolstripstatuslabelMain_CreatedBy.Text = "Created by: $Author"
-	#$toolstripstatuslabelMain_CreatedBy.Text = "Created by: $Author"
-	
-	# Services to add to dropdown list
-	$ServiceComboBox.Items.Add("Microsoft Graph")
-	$ServiceComboBox.Items.Add("Exchange Online")
-	$ServiceComboBox.Items.Add("SharePoint")
+	if ($ValueMember)
+	{
+		$ComboBox.ValueMember = $ValueMember
+	}
 }
 
-$darkToolStripMenuItem_Click={
-	#TODO: Place custom script here
-	Set-ControlTheme -Control $formManagedIdentityPermi -Theme Dark
-	
-	$global:darkModeStateUI = $true
-}
-
-$lightToolStripMenuItem_Click={
-	Set-ControlTheme -Control $formManagedIdentityPermi -Theme Light
-	
-	$global:darkModeStateUI = $false
-}
+#endregion
 
 #region Control Theme Helper Function
 <#
@@ -1656,6 +1646,191 @@ namespace SAPIENTypes
 }
 #endregion
 
+# Populate the master list initially for access scopes found
+function Initialize-MasterItems
+{
+	$global:masterItems = @()
+	foreach ($item in $checkedlistboxPermissionsToAssign.Items)
+	{
+		$global:masterItems += $item
+	}
+}
+
+function Get-AssignableApiPermissionScopes
+{
+	param (
+		[string]$ServiceType
+	)
+	
+	try
+	{
+		# Clear list for existing ithems
+		$checkedlistboxPermissionsToAssign.Items.Clear()
+		
+		# Determine the AppId based on the ServiceType
+		switch ($ServiceType)
+		{
+			"Microsoft Graph" {
+				$appId = '00000003-0000-0000-c000-000000000000'
+			}
+			"Exchange Online" {
+				$appId = '00000002-0000-0ff1-ce00-000000000000'
+			}
+			"SharePoint" {
+				$appId = '00000003-0000-0ff1-ce00-000000000000'
+			}
+			default {
+				# Log
+				Write-Log -Level INFO -Message "Invalid ServiceType specified. Valid values are 'Microsoft Graph', 'Exchange Online', 'SharePoint'."
+				return
+			}
+		}
+		
+		# Get the service principal for the specified AppId
+		Write-Log -Level INFO -Message "Retrieving service principal for AppId: '$appId'"
+		
+		# Get needed data
+		$servicePrincipal = Get-MgServicePrincipal -Filter "AppId eq '$appId'" -Property "id,appId,displayName,appRoles,oauth2PermissionScopes,resourceSpecificApplicationPermissions"
+		
+		# Check if returned data
+		if ($null -eq $servicePrincipal)
+		{
+			# Log
+			Write-Log -Level INFO -Message "No service principal found with AppId '$appId', Service '$($servicePrincipal.DisplayName)'."
+			return
+		}
+		
+		# Log
+		Write-Log -Level INFO -Message "Service principal retrieved: AppId '$appId', '$($servicePrincipal.DisplayName)'"
+		
+		# Extract the permission scopes (AppRoles and Oauth2PermissionScopes)
+		$appRoles = $servicePrincipal.AppRoles
+		$oauth2PermissionScopes = $servicePrincipal.Oauth2PermissionScopes
+		
+		# Check if scopes assigned
+		if ($appRoles.Count -eq 0 -and $oauth2PermissionScopes.Count -eq 0)
+		{
+			# Log
+			Write-Log -Level INFO -Message "No assignable permission scopes found for service principal with AppId '$appId' service '$($servicePrincipal.DisplayName)'."
+			return
+		}
+		
+		# Log
+		Write-Log -Level INFO -Message "Assignable permission scopes retrieved for AppId '$appId' service '$($servicePrincipal.DisplayName)'."
+		
+		# Populate the CheckedListBox with permission scopes
+		Write-Log -Level INFO -Message "Adding assignable permission scopes to permission list for AppId '$appId' service '$($servicePrincipal.DisplayName)'..."
+		
+		foreach ($role in $appRoles)
+		{
+			$roleDetails = "Role details: '$($role.DisplayName)', Role scope: '$($role.Value)', RoleId: '$($role.Id)'"
+			$checkedlistboxPermissionsToAssign.Items.Add($roleDetails)
+		}
+		
+		Write-Log -Level INFO -Message "Added all assignable permission scopes to permission list for AppId '$appId' service '$($servicePrincipal.DisplayName)' to the list for management."
+		
+		<#
+		foreach ($scope in $oauth2PermissionScopes)
+		{
+			$scopeDetails = "Scope details: $($scope.AdminConsentDisplayName), ScopeValue: $($scope.Value), ScopeId: $($scope.Id)"
+			$checkedlistboxPermissionsToAssign.Items.Add($scopeDetails)
+		}
+		#>
+	}
+	catch
+	{
+		# Log
+		Write-Log -Level ERROR -Message "Error retrieving permission scopes: $_"
+	}
+}
+
+function Get-ManagedIdentities
+{
+	# Get all managed identities
+	
+	# Ckecl current data in list to not keep old
+	$comboBox.Items.Clear()
+	
+	# If connected
+	if ($global:ConnectedState)
+	{
+		# Log
+		Write-Log -Level INFO -Message "Loading list of Managed Identity from tenant..."
+		
+		# Get all data
+		$global:managedIdentities = Get-MgServicePrincipal -Filter "servicePrincipalType eq 'ManagedIdentity'"
+		
+		# Log
+		Write-Log -Level INFO -Message "Loaded list Managed Identity from tenant."
+		
+		# Populate the ComboBox with managed identities
+		foreach ($identity in $managedIdentities)
+		{
+			$comboBox.Items.Add($identity.DisplayName)
+		}
+		
+		# Log
+		Write-Log -Level INFO -Message "List of Managed Identity updated with a total of '$(Get-ManagedIdentityCount)' Managed Identity´s"
+	}
+	# Else if not connected
+	else
+	{
+		# Log
+		Write-Log -Level INFO -Message "Not connected - can´t load list of Managed Identity´s"
+	}
+}
+
+$formManagedIdentityPermi_Load={
+	#TODO: Initialize Form Controls here
+	
+	CheckLogPath
+	
+	Write-Log -Level INFO -Message "The application $ToolName is started"
+	
+	$global:darkModeStateUI = Is-WindowsInDarkMode
+	
+	if ($global:darkModeStateUI)
+	{
+		Set-ControlTheme $formManagedIdentityPermi -Theme Dark
+		
+		$darkModeSateUI = $true
+	}
+	else
+	{
+		Set-ControlTheme $formManagedIdentityPermi -Theme Light
+		
+		$darkModeSateUI = $false
+	}
+	
+	$ConnectedState = $false
+	$clearExistingPermissions = $true
+	#$darkModeSateUI = $true
+	
+	#$formServiceAccountsVXxxC.Text = "Service Accounts v. $FormVersion - Created by: $Author - Company: $AuthorCompany"
+	$formManagedIdentityPermi.Text = "$ToolName v. $FormVersion"
+	
+	$toolstripstatuslabelMain_CreatedBy.Text = "Created by: $Author"
+	#$toolstripstatuslabelMain_CreatedBy.Text = "Created by: $Author"
+	
+	# Services to add to dropdown list
+	$ServiceComboBox.Items.Add("Microsoft Graph")
+	$ServiceComboBox.Items.Add("Exchange Online")
+	$ServiceComboBox.Items.Add("SharePoint")
+}
+
+$darkToolStripMenuItem_Click={
+	#TODO: Place custom script here
+	Set-ControlTheme -Control $formManagedIdentityPermi -Theme Dark
+	
+	$global:darkModeStateUI = $true
+}
+
+$lightToolStripMenuItem_Click={
+	Set-ControlTheme -Control $formManagedIdentityPermi -Theme Light
+	
+	$global:darkModeStateUI = $false
+}
+
 $buttonConnectMicrosoftGraph_Click = {
 	
 	# If connected
@@ -1965,186 +2140,6 @@ $buttonGetAccessScopesForSe_Click = {
 	# Call this function once to initialize the master list
 	Initialize-MasterItems
 }
-
-#region Control Helper Functions
-function Update-ListBox
-{
-<#
-	.SYNOPSIS
-		This functions helps you load items into a ListBox or CheckedListBox.
-	
-	.DESCRIPTION
-		Use this function to dynamically load items into the ListBox control.
-	
-	.PARAMETER ListBox
-		The ListBox control you want to add items to.
-	
-	.PARAMETER Items
-		The object or objects you wish to load into the ListBox's Items collection.
-	
-	.PARAMETER DisplayMember
-		Indicates the property to display for the items in this control.
-	
-	.PARAMETER Append
-		Adds the item(s) to the ListBox without clearing the Items collection.
-	
-	.EXAMPLE
-		Update-ListBox $ListBox1 "Red", "White", "Blue"
-	
-	.EXAMPLE
-		Update-ListBox $listBox1 "Red" -Append
-		Update-ListBox $listBox1 "White" -Append
-		Update-ListBox $listBox1 "Blue" -Append
-	
-	.EXAMPLE
-		Update-ListBox $listBox1 (Get-Process) "ProcessName"
-	
-	.NOTES
-		Additional information about the function.
-#>
-	
-	param
-	(
-		[Parameter(Mandatory = $true)]
-		[ValidateNotNull()]
-		[System.Windows.Forms.ListBox]
-		$ListBox,
-		[Parameter(Mandatory = $true)]
-		[ValidateNotNull()]
-		$Items,
-		[Parameter(Mandatory = $false)]
-		[string]
-		$DisplayMember,
-		[Parameter(Mandatory = $false)]
-		[string]$ValueMember,
-		[switch]
-		$Append
-	)
-	
-	if (-not $Append)
-	{
-		$listBox.Items.Clear()
-	}
-	
-	if ($Items -is [System.Windows.Forms.ListBox+ObjectCollection])
-	{
-		$listBox.Items.AddRange($Items)
-	}
-	elseif ($Items -is [Array])
-	{
-		$listBox.BeginUpdate()
-		foreach ($obj in $Items)
-		{
-			$listBox.Items.Add($obj)
-		}
-		$listBox.EndUpdate()
-	}
-	else
-	{
-		$listBox.Items.Add($Items)
-	}
-	
-	if ($DisplayMember) 
-	{
-		$listBox.DisplayMember = $DisplayMember
-	}
-	if ($ValueMember)
-	{
-		$ListBox.ValueMember = $ValueMember
-	}
-}
-
-function Update-ComboBox
-{
-<#
-	.SYNOPSIS
-		This functions helps you load items into a ComboBox.
-	
-	.DESCRIPTION
-		Use this function to dynamically load items into the ComboBox control.
-	
-	.PARAMETER ComboBox
-		The ComboBox control you want to add items to.
-	
-	.PARAMETER Items
-		The object or objects you wish to load into the ComboBox's Items collection.
-	
-	.PARAMETER DisplayMember
-		Indicates the property to display for the items in this control.
-		
-	.PARAMETER ValueMember
-		Indicates the property to use for the value of the control.
-	
-	.PARAMETER Append
-		Adds the item(s) to the ComboBox without clearing the Items collection.
-	
-	.EXAMPLE
-		Update-ComboBox $combobox1 "Red", "White", "Blue"
-	
-	.EXAMPLE
-		Update-ComboBox $combobox1 "Red" -Append
-		Update-ComboBox $combobox1 "White" -Append
-		Update-ComboBox $combobox1 "Blue" -Append
-	
-	.EXAMPLE
-		Update-ComboBox $combobox1 (Get-Process) "ProcessName"
-	
-	.NOTES
-		Additional information about the function.
-#>
-	
-	param
-	(
-		[Parameter(Mandatory = $true)]
-		[ValidateNotNull()]
-		[System.Windows.Forms.ComboBox]
-		$ComboBox,
-		[Parameter(Mandatory = $true)]
-		[ValidateNotNull()]
-		$Items,
-		[Parameter(Mandatory = $false)]
-		[string]$DisplayMember,
-		[Parameter(Mandatory = $false)]
-		[string]$ValueMember,
-		[switch]
-		$Append
-	)
-	
-	if (-not $Append)
-	{
-		$ComboBox.Items.Clear()
-	}
-	
-	if ($Items -is [Object[]])
-	{
-		$ComboBox.Items.AddRange($Items)
-	}
-	elseif ($Items -is [System.Collections.IEnumerable])
-	{
-		$ComboBox.BeginUpdate()
-		foreach ($obj in $Items)
-		{
-			$ComboBox.Items.Add($obj)
-		}
-		$ComboBox.EndUpdate()
-	}
-	else
-	{
-		$ComboBox.Items.Add($Items)
-	}
-	
-	if ($DisplayMember)
-	{
-		$ComboBox.DisplayMember = $DisplayMember
-	}
-	
-	if ($ValueMember)
-	{
-		$ComboBox.ValueMember = $ValueMember
-	}
-}
-
-#endregion
 
 $buttonAddSelectedAccessSco_Click={
 	$selectedScopes = @()
