@@ -1,4 +1,4 @@
-# Azure Managed Identity Permissions Tool
+# Azure Managed Identity permissions tool
 
 <p align="center">
   <a href="https://github.com/michaelmsonne/ManagedIdentityPermissionManager"><img src="https://img.shields.io/github/languages/top/michaelmsonne/ManagedIdentityPermissionManager.svg"></a>
