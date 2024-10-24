@@ -558,6 +558,7 @@ function Add-ServicePrincipalPermission
 						{
 							try
 							{
+								# TODO Fix error output
 								New-MgServicePrincipalAppRoleAssignment -PrincipalId $ManagedIdentityID -ServicePrincipalId $ManagedIdentityID -ResourceId $AppGraph.Id -AppRoleId $AppRole.Id > $null
 								$existingAppRole = Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID | Where-Object { $_.ResourceId -eq $AppGraph.Id -and $_.AppRoleId -eq $AppRole.Id }
 								if ($existingAppRole)
@@ -675,6 +676,7 @@ function Remove-ServicePrincipalPermission
 						{
 							Write-Log -Level INFO -Message "Attempting to remove AppRoleAssignmentId: $($role.Id)"
 							
+							# TODO Fix error output
 							Remove-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID -AppRoleAssignmentId $role.Id
 							
 							Write-Log -Level INFO -Message "The scope '$permission' has been removed from service '$ServiceType'"
