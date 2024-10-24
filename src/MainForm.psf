@@ -2180,7 +2180,7 @@ $textboxSccessScopeToAssignFilter_TextChanged={
 	$filterText = $textboxSccessScopeToAssignFilter.Text
 	$filteredItems = @()
 	
-	if ($filterText -eq "")
+	if ($filterText -eq "" -or $null)
 	{
 		# If the filter text is empty, reset to all items
 		$filteredItems = $global:masterItems
