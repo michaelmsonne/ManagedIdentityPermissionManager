@@ -1822,7 +1822,7 @@ function Get-ManagedIdentities
 		$global:managedIdentities = Get-MgServicePrincipal -Filter "servicePrincipalType eq 'ManagedIdentity'"
 		
 		# Log
-		Write-Log -Level INFO -Message "Loaded list Managed Identity from tenant."
+		Write-Log -Level INFO -Message "Loaded updated the list of found Managed Identity´s from tenant."
 		
 		# Populate the ComboBox with managed identities
 		foreach ($identity in $managedIdentities)
@@ -2263,6 +2263,6 @@ $textboxSccessScopeToAssignFilter_TextChanged={
 	}
 }
 ]]></Code>
-  <Mode>0</Mode>
+  <Mode>1</Mode>
   <Assemblies />
 </File>
