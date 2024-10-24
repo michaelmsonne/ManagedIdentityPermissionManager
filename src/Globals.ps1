@@ -2,7 +2,7 @@
 # Declare Global Variables and Functions here
 #--------------------------------------------
 
-$global:ConnectedState
+$global:ConnectedState = $false
 $global:managedIdentities
 $global:clearExistingPermissions
 $global:darkModeStateUI
@@ -72,17 +72,21 @@ Function CheckLogPath
 		{
 			#Create logfile of not exists
 			New-Item $FolderName -ItemType Directory
+			
+			# Log
 			Write-Log -Level INFO -Message "The application log path does not exists and is created: '$LogPath'"
 		}
 	}
 	# Catch specific types of exceptions thrown by one of those commands
 	catch [System.Exception]
 	{
+		# Log
 		Write-Log -Level ERROR -Message $($Error[0].Exception.Message)
 	}
 	# Catch all other exceptions thrown by one of those commands
 	catch
 	{
+		# Log
 		Write-Log -Level ERROR -Message $($Error[0].Exception.Message)
 	}
 }
@@ -414,13 +418,19 @@ AppRoleScope: '$appRoleScope'
 	}
 	catch
 	{
-		$result += "Error retrieving access scopes assignments for Managed Identity ID '$ManagedIdentityID': $_`r`n"
-		
-		# Log
-		Write-Log -Level ERROR -Message "Error retrieving access scopes assignments for Managed Identity ID '$ManagedIdentityID': $_"
+		if ($_ -match "Cannot bind argument to parameter 'ServicePrincipalId' because it is an empty string.")
+		{
+			$result += "You need to select a Managed Identity in the dropdown list to get the assigned access scopes for. Try again.`r`n"
+			Write-Log -Level ERROR -Message "You need to select a Managed Identity in the dropdown list to get the assigned access scopes for. Try again."
+		}
+		else
+		{
+			$result += "Error retrieving access scopes assignments for Managed Identity ID '$ManagedIdentityID': $_`r`n"
+			Write-Log -Level ERROR -Message "Error retrieving access scopes assignments for Managed Identity ID '$ManagedIdentityID': $_"
+		}
 	}
 	
-	# Retun data
+	# Return data
 	return $result
 }
 
@@ -468,12 +478,14 @@ function Add-ServicePrincipalPermission
 				# Debug logging to verify ManagedIdentityID
 				Write-Log -Level INFO -Message "ManagedIdentityID: $ManagedIdentityID"
 				
+				# Log
 				Write-Log -Level INFO -Message "Removing existing permissions because clear existing permissions is set"
 				
 				$AssignedPermissions = Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID
 				
 				if ($AssignedPermissions.Count -eq 0)
 				{
+					# Log
 					Write-Log -Level INFO -Message "No permissions assigned"
 				}
 				
@@ -491,6 +503,8 @@ function Add-ServicePrincipalPermission
 				for ($i = 0; $i -lt $AssignedPermissions.Count; $i++)
 				{
 					$AssignedPermission = @($AssignedPermissions)[$i]
+					
+					# Log
 					Write-Log -Level INFO -Message "Permission $($i + 1): service: '$($AssignedPermission.AppDisplayName)' | '$($AssignedPermission.PermissionName)'"
 				}
 				
@@ -498,11 +512,15 @@ function Add-ServicePrincipalPermission
 				{
 					try
 					{
+						# Do
 						Remove-MgServicePrincipalAppRoleAssignment -AppRoleAssignmentId $permission.Id -ServicePrincipalId $ManagedIdentityID
+						
+						# Log
 						Write-Log -Level INFO -Message "Permission for service: '$($permission.AppDisplayName)' | '$($permission.PermissionName)' has been removed"
 					}
 					catch
 					{
+						# Log
 						Write-Log -Level ERROR -Message "Failed to remove permission for service '$($permission.AppDisplayName)' | '$($permission.PermissionName)': $_"
 					}
 				}
@@ -510,6 +528,7 @@ function Add-ServicePrincipalPermission
 			}
 			if ($clearExistingPermissions -eq $false)
 			{
+				# Log
 				Write-Log -Level INFO -Message "Set to keep existing permissions because clear existing permissions is not set"
 			}			
 			
@@ -715,14 +734,18 @@ function Remove-AllServicePrincipalPermissions
 				$appRole = $servicePrincipal.AppRoles | Where-Object { $_.Id -eq $permission.AppRoleId }
 				$permissionScope = $appRole.Value
 				
+				# Log
 				Write-Log -Level INFO -Message "Attempting to remove AppRoleAssignmentId: $($permission.Id) for service: '$serviceName' with scope: '$permissionScope'"
 				
+				# Do
 				Remove-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID -AppRoleAssignmentId $permission.Id
 				
+				# Log
 				Write-Log -Level INFO -Message "Permission with AppRoleAssignmentId '$($permission.Id)' for service: '$serviceName' with scope: '$permissionScope' has been removed."
 			}
 			catch
 			{
+				# Log
 				Write-Log -Level ERROR -Message "Error removing permission with AppRoleAssignmentId '$($permission.Id)' for service: '$serviceName' with scope: '$permissionScope': $_"
 			}
 		}
@@ -731,6 +754,7 @@ function Remove-AllServicePrincipalPermissions
 	}
 	catch
 	{
+		# Log
 		Write-Log -Level ERROR -Message "Error removing all permissions for managed identity '$ManagedIdentityID': $_"
 	}
 }
