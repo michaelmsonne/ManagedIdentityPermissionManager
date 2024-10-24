@@ -1964,8 +1964,6 @@ $buttonGetAccessScopesForSe_Click = {
 	
 	# Call this function once to initialize the master list
 	Initialize-MasterItems
-	
-	# ServiceComboBox
 }
 
 #region Control Helper Functions
