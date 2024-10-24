@@ -2,7 +2,7 @@
 # Declare Global Variables and Functions here
 #--------------------------------------------
 
-$global:ConnectedState = $false
+$global:ConnectedState = $false # Default value
 $global:managedIdentities
 $global:clearExistingPermissions
 $global:darkModeStateUI
@@ -18,6 +18,9 @@ $global:UserName = [System.Security.Principal.WindowsIdentity]::GetCurrent().Nam
 
 #Logfile path
 $LogPath = "$Env:USERPROFILE\AppData\Local\$global:ToolName"
+
+# Variable that provides the location of the script
+[string]$ScriptDirectory = Get-ScriptDirectory
 
 function Is-WindowsInDarkMode
 {
@@ -257,9 +260,6 @@ function Get-ScriptDirectory
 		Split-Path $script:MyInvocation.MyCommand.Path
 	}
 }
-
-#Sample variable that provides the location of the script
-[string]$ScriptDirectory = Get-ScriptDirectory
 
 function Get-ManagedIdentityCount
 {
