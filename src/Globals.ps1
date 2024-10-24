@@ -330,11 +330,14 @@ function ConnectToGraph
 	# Check if the connection is successful
 	try
 	{
+		# Get currect context (if any)
 		$context = Get-MgContext
+		
+		# If context exists
 		if ($context -and $context.ClientId -and $context.TenantId)
 		{
 			# Log
-			Write-Log -Level INFO -Message "Successfully connected to Microsoft Graph as '$($context.Account)' to tenant Id '$($context.TenantId)' via app '$($context.AppName)'."
+			Write-Log -Level INFO -Message "Connected to Microsoft Graph as '$($context.Account)' (Tenant: '$($context.TenantId)', App: '$($context.AppName)', Auth: $($context.AuthType)/$($context.ContextScope), Token: '$($context.TokenCredentialType)')"
 			
 			# Set state
 			$ConnectedState = $true
