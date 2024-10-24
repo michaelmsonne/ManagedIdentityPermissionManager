@@ -566,12 +566,12 @@ function Add-ServicePrincipalPermission
 								}
 								else
 								{
-									Write-Log -Level INFO -Message "The scope '$Scope' could not be assigned for service '$ServiceType' - error: $_"
+									Write-Log -Level INFO -Message "The scope '$Scope' could not be assigned for service '$ServiceType' - error: $($_.Exception.Message)"
 								}
 							}
 							catch
 							{
-								Write-Log -Level ERROR -Message "Error assigning the scope '$Scope' for service '$ServiceType': $_"
+								Write-Log -Level ERROR -Message "Error assigning the scope '$Scope' for service '$ServiceType': $($_.Exception.Message)"
 							}
 						}
 					}
@@ -593,7 +593,7 @@ function Add-ServicePrincipalPermission
 	}
 	catch
 	{
-		Write-Log -Level ERROR -Message "Error adding service '$ServiceType' permission '$Permissions': $_"
+		Write-Log -Level ERROR -Message "Error adding service '$ServiceType' permission '$Permissions': $($_.Exception.Message)"
 	}
 }
 
@@ -662,7 +662,8 @@ function Remove-ServicePrincipalPermission
 			# Remove the old permission assignments
 			foreach ($permission in $Perms)
 			{
-				Write-Log -Level INFO -Message "Permission to be removed: $permission"
+				# Log
+				Write-Log -Level INFO -Message "Trying to remove permission: $permission"
 				
 				if ($allPermissions.ContainsKey($permission.Trim()))
 				{
@@ -680,7 +681,7 @@ function Remove-ServicePrincipalPermission
 						}
 						catch
 						{
-							Write-Log -Level ERROR -Message "Error removing the scope '$permission' from service '$ServiceType': $_"
+							Write-Log -Level ERROR -Message "Error removing the scope '$permission' from service '$ServiceType': $($_.Exception.Message)"
 						}
 					}
 				}
