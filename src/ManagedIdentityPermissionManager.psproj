@@ -11,5 +11,6 @@
     <File Build="0" ReferenceFunction="Show-MainForm_psf">MainForm.psf</File>
     <File Build="1">.gitignore</File>
     <File Build="0" ReferenceFunction="Show-ChangelogForm_psf">ChangelogForm.psf</File>
+    <File Build="0" ReferenceFunction="Show-AboutForm_psf">AboutForm.psf</File>
   </Files>
 </Project>
