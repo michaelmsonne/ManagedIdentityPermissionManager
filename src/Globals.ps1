@@ -525,7 +525,7 @@ function Add-ServicePrincipalPermission
 					catch
 					{
 						# Log
-						Write-Log -Level ERROR -Message "Failed to remove permission for service '$($permission.AppDisplayName)' | '$($permission.PermissionName)' - error: $($_.Exception.Message)"
+						Write-Log -Level ERROR -Message "Failed to remove permission for service '$($permission.AppDisplayName)' | '$($permission.PermissionName)': $($_.Exception.Message)"
 					}
 				}
 				#Update-Log -Message "Permissions have been removed"
@@ -577,13 +577,13 @@ function Add-ServicePrincipalPermission
 								else
 								{
 									# Log
-									Write-Log -Level INFO -Message "The scope '$Scope' could not be assigned for service '$ServiceType' - error: $($_.Exception.Message)"
+									Write-Log -Level INFO -Message "The scope '$Scope' could not be assigned for service '$ServiceType': $($_.Exception.Message)"
 								}
 							}
 							catch
 							{
 								# Log
-								Write-Log -Level ERROR -Message "Error assigning the scope '$Scope' for service '$ServiceType' - error: $($_.Exception.Message)"
+								Write-Log -Level ERROR -Message "Error assigning the scope '$Scope' for service '$ServiceType': $($_.Exception.Message)"
 							}
 						}
 					}
@@ -609,7 +609,7 @@ function Add-ServicePrincipalPermission
 	catch
 	{
 		# Log
-		Write-Log -Level ERROR -Message "Error adding service '$ServiceType' permission '$Permissions' - error: $($_.Exception.Message)"
+		Write-Log -Level ERROR -Message "Error adding service '$ServiceType' permission '$Permissions': $($_.Exception.Message)"
 	}
 }
 
@@ -708,7 +708,7 @@ function Remove-ServicePrincipalPermission
 						catch
 						{
 							# Log
-							Write-Log -Level ERROR -Message "Error removing the scope '$permission' from service '$ServiceType' - error: $($_.Exception.Message)"
+							Write-Log -Level ERROR -Message "Error removing the scope '$permission' from service '$ServiceType': $($_.Exception.Message)"
 						}
 					}
 				}
@@ -730,7 +730,7 @@ function Remove-ServicePrincipalPermission
 	catch
 	{
 		# Log
-		Write-Log -Level ERROR -Message "Error removing permission '$Permissions' from service '$ServiceType' - error: $($_.Exception.Message)"
+		Write-Log -Level ERROR -Message "Error removing permission '$Permissions' from service '$ServiceType': $($_.Exception.Message)"
 	}
 }
 
