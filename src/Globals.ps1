@@ -377,7 +377,7 @@ function Get-CurrentAppRoleAssignments
 		Write-Log -Level INFO -Message "Getting permissions for Managed Identity with Id: '$ManagedIdentityID'"
 		
 		# Get current role assignments
-		$currentAppRoles = Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID
+		$currentAppRoles = Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID -ErrorAction Stop
 		
 		# Of any roles assigned
 		if ($currentAppRoles)
@@ -386,7 +386,7 @@ function Get-CurrentAppRoleAssignments
 			foreach ($appRole in $currentAppRoles)
 			{
 				# Resolve ResourceId to Service Principal Name
-				$resource = Get-MgServicePrincipal -ServicePrincipalId $appRole.ResourceId
+				$resource = Get-MgServicePrincipal -ServicePrincipalId $appRole.ResourceId -ErrorAction Stop
 				$resourceName = $resource.DisplayName
 				
 				# Resolve AppRoleId to App Role Name and Value (Scope)
@@ -428,8 +428,8 @@ AppRoleScope: '$appRoleScope'
 		}
 		else
 		{
-			$result += "Error retrieving access scopes assignments for Managed Identity ID '$ManagedIdentityID': $_`r`n"
-			Write-Log -Level ERROR -Message "Error retrieving access scopes assignments for Managed Identity ID '$ManagedIdentityID': $_"
+			$result += "Error retrieving access scopes assignments for Managed Identity ID '$ManagedIdentityID': $($_.Exception.Message)`r`n"
+			Write-Log -Level ERROR -Message "Error retrieving access scopes assignments for Managed Identity ID '$ManagedIdentityID': $($_.Exception.Message)"
 		}
 	}
 	
@@ -516,7 +516,7 @@ function Add-ServicePrincipalPermission
 					try
 					{
 						# Do
-						Remove-MgServicePrincipalAppRoleAssignment -AppRoleAssignmentId $permission.Id -ServicePrincipalId $ManagedIdentityID
+						Remove-MgServicePrincipalAppRoleAssignment -AppRoleAssignmentId $permission.Id -ServicePrincipalId $ManagedIdentityID -ErrorAction Stop
 						
 						# Log
 						Write-Log -Level INFO -Message "Permission for service: '$($permission.AppDisplayName)' | '$($permission.PermissionName)' has been removed"
@@ -524,7 +524,7 @@ function Add-ServicePrincipalPermission
 					catch
 					{
 						# Log
-						Write-Log -Level ERROR -Message "Failed to remove permission for service '$($permission.AppDisplayName)' | '$($permission.PermissionName)': $_"
+						Write-Log -Level ERROR -Message "Failed to remove permission for service '$($permission.AppDisplayName)' | '$($permission.PermissionName)': $($_.Exception.Message)"
 					}
 				}
 				#Update-Log -Message "Permissions have been removed"
@@ -558,8 +558,7 @@ function Add-ServicePrincipalPermission
 						{
 							try
 							{
-								# TODO Fix error output
-								New-MgServicePrincipalAppRoleAssignment -PrincipalId $ManagedIdentityID -ServicePrincipalId $ManagedIdentityID -ResourceId $AppGraph.Id -AppRoleId $AppRole.Id > $null
+								New-MgServicePrincipalAppRoleAssignment -PrincipalId $ManagedIdentityID -ServicePrincipalId $ManagedIdentityID -ResourceId $AppGraph.Id -AppRoleId $AppRole.Id -ErrorAction Stop
 								$existingAppRole = Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID | Where-Object { $_.ResourceId -eq $AppGraph.Id -and $_.AppRoleId -eq $AppRole.Id }
 								if ($existingAppRole)
 								{
@@ -664,7 +663,7 @@ function Remove-ServicePrincipalPermission
 			foreach ($permission in $Perms)
 			{
 				# Log
-				Write-Log -Level INFO -Message "Trying to remove permission: $permission"
+				Write-Log -Level INFO -Message "Trying to remove permission: '$permission'"
 				
 				if ($allPermissions.ContainsKey($permission.Trim()))
 				{
@@ -674,10 +673,10 @@ function Remove-ServicePrincipalPermission
 					{
 						try
 						{
-							Write-Log -Level INFO -Message "Attempting to remove AppRoleAssignmentId: $($role.Id)"
+							Write-Log -Level INFO -Message "Attempting to remove AppRoleAssignmentId: '$($role.Id)'"
 							
 							# TODO Fix error output
-							Remove-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID -AppRoleAssignmentId $role.Id
+							Remove-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID -AppRoleAssignmentId $role.Id -ErrorAction Stop
 							
 							Write-Log -Level INFO -Message "The scope '$permission' has been removed from service '$ServiceType'"
 						}
@@ -702,7 +701,7 @@ function Remove-ServicePrincipalPermission
 	}
 	catch
 	{
-		Write-Log -Level ERROR -Message "Error removing service '$ServiceType' permission '$Permissions': $_"
+		Write-Log -Level ERROR -Message "Error removing service '$ServiceType' permission '$Permissions': $($_.Exception.Message)"
 	}
 }
 
@@ -744,7 +743,7 @@ function Remove-AllServicePrincipalPermissions
 				Write-Log -Level INFO -Message "Attempting to remove AppRoleAssignmentId: $($permission.Id) for service: '$serviceName' with scope: '$permissionScope'"
 				
 				# Do
-				Remove-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID -AppRoleAssignmentId $permission.Id
+				Remove-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID -AppRoleAssignmentId $permission.Id -ErrorAction Stop
 				
 				# Log
 				Write-Log -Level INFO -Message "Permission with AppRoleAssignmentId '$($permission.Id)' for service: '$serviceName' with scope: '$permissionScope' has been removed."
@@ -752,7 +751,7 @@ function Remove-AllServicePrincipalPermissions
 			catch
 			{
 				# Log
-				Write-Log -Level ERROR -Message "Error removing permission with AppRoleAssignmentId '$($permission.Id)' for service: '$serviceName' with scope: '$permissionScope': $_"
+				Write-Log -Level ERROR -Message "Error removing permission with AppRoleAssignmentId '$($permission.Id)' for service: '$serviceName' with scope: '$permissionScope': $($_.Exception.Message)"
 			}
 		}
 		
@@ -761,6 +760,6 @@ function Remove-AllServicePrincipalPermissions
 	catch
 	{
 		# Log
-		Write-Log -Level ERROR -Message "Error removing all permissions for managed identity '$ManagedIdentityID': $_"
+		Write-Log -Level ERROR -Message "Error removing all permissions for managed identity '$ManagedIdentityID': $($_.Exception.Message)"
 	}
 }
