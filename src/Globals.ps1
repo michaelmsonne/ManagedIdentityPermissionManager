@@ -525,7 +525,7 @@ function Add-ServicePrincipalPermission
 					catch
 					{
 						# Log
-						Write-Log -Level ERROR -Message "Failed to remove permission for service '$($permission.AppDisplayName)' | '$($permission.PermissionName)': $($_.Exception.Message)"
+						Write-Log -Level ERROR -Message "Failed to remove permission for service '$($permission.AppDisplayName)' | '$($permission.PermissionName)' - error: $($_.Exception.Message)"
 					}
 				}
 				#Update-Log -Message "Permissions have been removed"
@@ -558,7 +558,7 @@ function Add-ServicePrincipalPermission
 						if ($existingAppRole)
 						{
 							# Log
-							Write-Log -Level INFO -Message "The scope '$Scope' is already assigned for service '$ServiceType'"
+							Write-Log -Level INFO -Message "The scope '$Scope' is already assigned for service '$ServiceType' - skipped"
 						}
 						else
 						{
@@ -583,7 +583,7 @@ function Add-ServicePrincipalPermission
 							catch
 							{
 								# Log
-								Write-Log -Level ERROR -Message "Error assigning the scope '$Scope' for service '$ServiceType': $($_.Exception.Message)"
+								Write-Log -Level ERROR -Message "Error assigning the scope '$Scope' for service '$ServiceType' - error: $($_.Exception.Message)"
 							}
 						}
 					}
@@ -609,7 +609,7 @@ function Add-ServicePrincipalPermission
 	catch
 	{
 		# Log
-		Write-Log -Level ERROR -Message "Error adding service '$ServiceType' permission '$Permissions': $($_.Exception.Message)"
+		Write-Log -Level ERROR -Message "Error adding service '$ServiceType' permission '$Permissions' - error: $($_.Exception.Message)"
 	}
 }
 
@@ -689,7 +689,7 @@ function Remove-ServicePrincipalPermission
 					if ($existingAppRole.Count -eq 0)
 					{
 						# Log
-						Write-Log -Level INFO -Message "No existing AppRole assignments found for permission: '$permission'"
+						Write-Log -Level INFO -Message "No existing AppRole assignments found for permission: '$permission' for service '$ServiceType'"
 					}
 					
 					foreach ($role in $existingAppRole)
@@ -708,7 +708,7 @@ function Remove-ServicePrincipalPermission
 						catch
 						{
 							# Log
-							Write-Log -Level ERROR -Message "Error removing the scope '$permission' from service '$ServiceType': $($_.Exception.Message)"
+							Write-Log -Level ERROR -Message "Error removing the scope '$permission' from service '$ServiceType' - error: $($_.Exception.Message)"
 						}
 					}
 				}
@@ -730,7 +730,7 @@ function Remove-ServicePrincipalPermission
 	catch
 	{
 		# Log
-		Write-Log -Level ERROR -Message "Error removing service '$ServiceType' permission '$Permissions': $($_.Exception.Message)"
+		Write-Log -Level ERROR -Message "Error removing permission '$Permissions' from service '$ServiceType' - error: $($_.Exception.Message)"
 	}
 }
 
