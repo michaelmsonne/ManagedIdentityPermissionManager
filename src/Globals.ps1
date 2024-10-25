@@ -264,7 +264,7 @@ function Get-ScriptDirectory
 function Get-ManagedIdentityCount
 {
 	# Get data to global data to keep
-	$global:managedIdentities = Get-MgServicePrincipal -Filter "servicePrincipalType eq 'ManagedIdentity'"
+	$global:managedIdentities = Get-MgServicePrincipal -Filter "servicePrincipalType eq 'ManagedIdentity'" -All
 	
 	# Return data
 	return $global:managedIdentities.Count
@@ -377,7 +377,7 @@ function Get-CurrentAppRoleAssignments
 		Write-Log -Level INFO -Message "Getting permissions for Managed Identity with Id: '$ManagedIdentityID'"
 		
 		# Get current role assignments
-		$currentAppRoles = Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID -ErrorAction Stop
+		$currentAppRoles = Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID -All -ErrorAction Stop
 		
 		# Of any roles assigned
 		if ($currentAppRoles)
@@ -484,7 +484,7 @@ function Add-ServicePrincipalPermission
 				# Log
 				Write-Log -Level INFO -Message "Removing existing permissions because clear existing permissions is set"
 				
-				$AssignedPermissions = Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID
+				$AssignedPermissions = Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID -All
 				
 				if ($AssignedPermissions.Count -eq 0)
 				{
@@ -554,7 +554,7 @@ function Add-ServicePrincipalPermission
 					# If exists
 					if ($AppRole)
 					{
-						$existingAppRole = Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID | Where-Object { $_.ResourceId -eq $AppGraph.Id -and $_.AppRoleId -eq $AppRole.Id }
+						$existingAppRole = Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID -All | Where-Object { $_.ResourceId -eq $AppGraph.Id -and $_.AppRoleId -eq $AppRole.Id }
 						if ($existingAppRole)
 						{
 							# Log
@@ -568,7 +568,7 @@ function Add-ServicePrincipalPermission
 								New-MgServicePrincipalAppRoleAssignment -PrincipalId $ManagedIdentityID -ServicePrincipalId $ManagedIdentityID -ResourceId $AppGraph.Id -AppRoleId $AppRole.Id -ErrorAction Stop
 								
 								# Validate
-								$existingAppRole = Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID | Where-Object { $_.ResourceId -eq $AppGraph.Id -and $_.AppRoleId -eq $AppRole.Id }
+								$existingAppRole = Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID -All | Where-Object { $_.ResourceId -eq $AppGraph.Id -and $_.AppRoleId -eq $AppRole.Id }
 								if ($existingAppRole)
 								{
 									# Log
@@ -665,7 +665,7 @@ function Remove-ServicePrincipalPermission
 			Write-Log -Level INFO -Message "Permissions to remove: $Perms"
 			
 			# Get the current API permissions assigned to the managed identity
-			$currentPermissions = Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID
+			$currentPermissions = Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID -All
 			
 			# Get all available permissions for the service principal
 			$allPermissions = @{ }
@@ -749,7 +749,7 @@ function Remove-AllServicePrincipalPermissions
 		Write-Log -Level INFO -Message "Managed Identity ObjectID: '$ManagedIdentityID'"
 		
 		# Get the current API permissions assigned to the managed identity
-		$currentPermissions = Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID
+		$currentPermissions = Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID -All
 		
 		if ($currentPermissions.Count -eq 0)
 		{
