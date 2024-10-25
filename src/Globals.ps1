@@ -502,6 +502,7 @@ function Add-ServicePrincipalPermission
 					$permission | Add-Member -MemberType NoteProperty -Name PermissionName -Value $details.Value
 				}
 				
+				# Log
 				Write-Log -Level INFO -Message "Current assigned permissions is:"
 				for ($i = 0; $i -lt $AssignedPermissions.Count; $i++)
 				{
@@ -515,7 +516,7 @@ function Add-ServicePrincipalPermission
 				{
 					try
 					{
-						# Do
+						# Process
 						Remove-MgServicePrincipalAppRoleAssignment -AppRoleAssignmentId $permission.Id -ServicePrincipalId $ManagedIdentityID -ErrorAction Stop
 						
 						# Log
@@ -544,55 +545,70 @@ function Add-ServicePrincipalPermission
 			{
 				if (-not [string]::IsNullOrWhiteSpace($Scope))
 				{
+					# Log
 					Write-Log -Level INFO -Message "Processing permission '$Scope' for service '$ServiceType'"
+					
+					# Get data
 					$AppRole = $AppGraph.AppRoles | Where-Object { $_.Value -eq $Scope }
 					
+					# If exists
 					if ($AppRole)
 					{
 						$existingAppRole = Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID | Where-Object { $_.ResourceId -eq $AppGraph.Id -and $_.AppRoleId -eq $AppRole.Id }
 						if ($existingAppRole)
 						{
+							# Log
 							Write-Log -Level INFO -Message "The scope '$Scope' is already assigned for service '$ServiceType'"
 						}
 						else
 						{
 							try
 							{
+								# Process
 								New-MgServicePrincipalAppRoleAssignment -PrincipalId $ManagedIdentityID -ServicePrincipalId $ManagedIdentityID -ResourceId $AppGraph.Id -AppRoleId $AppRole.Id -ErrorAction Stop
+								
+								# Validate
 								$existingAppRole = Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID | Where-Object { $_.ResourceId -eq $AppGraph.Id -and $_.AppRoleId -eq $AppRole.Id }
 								if ($existingAppRole)
 								{
+									# Log
 									Write-Log -Level INFO -Message "The scope '$Scope' has been assigned to service '$ServiceType'"
 								}
 								else
 								{
+									# Log
 									Write-Log -Level INFO -Message "The scope '$Scope' could not be assigned for service '$ServiceType' - error: $($_.Exception.Message)"
 								}
 							}
 							catch
 							{
+								# Log
 								Write-Log -Level ERROR -Message "Error assigning the scope '$Scope' for service '$ServiceType': $($_.Exception.Message)"
 							}
 						}
 					}
 					else
 					{
+						# Log
 						Write-Log -Level WARN -Message "No App Role found for scope '$Scope' to service '$ServiceType' - skipping"
 					}
 				}
 				else
 				{
+					# Log
 					Write-Log -Level WARN -Message "Skipping empty or whitespace permission"
 				}
 			}
 		}
 		else
 		{
+			# Log
 			Write-Log -Level INFO -Message "Permissions parameter is empty or null"
 		}
 	}
 	catch
 	{
+		# Log
 		Write-Log -Level ERROR -Message "Error adding service '$ServiceType' permission '$Permissions': $($_.Exception.Message)"
 	}
 }
@@ -669,25 +685,36 @@ function Remove-ServicePrincipalPermission
 				{
 					$appRoleId = $allPermissions[$permission.Trim()]
 					$existingAppRole = $currentPermissions | Where-Object { $_.AppRoleId -eq $appRoleId }
+					
+					if ($existingAppRole.Count -eq 0)
+					{
+						# Log
+						Write-Log -Level INFO -Message "No existing AppRole assignments found for permission: '$permission'"
+					}
+					
 					foreach ($role in $existingAppRole)
 					{
 						try
 						{
+							# Log
 							Write-Log -Level INFO -Message "Attempting to remove AppRoleAssignmentId: '$($role.Id)'"
 							
-							# TODO Fix error output
+							# Process
 							Remove-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID -AppRoleAssignmentId $role.Id -ErrorAction Stop
 							
+							# Log
 							Write-Log -Level INFO -Message "The scope '$permission' has been removed from service '$ServiceType'"
 						}
 						catch
 						{
+							# Log
 							Write-Log -Level ERROR -Message "Error removing the scope '$permission' from service '$ServiceType': $($_.Exception.Message)"
 						}
 					}
 				}
 				else
 				{
+					# Log
 					Write-Log -Level ERROR -Message "Permission '$permission' not found in available permissions for service '$ServiceType'"
 				}
 			}
@@ -696,11 +723,13 @@ function Remove-ServicePrincipalPermission
 		}
 		else
 		{
+			# Log
 			Write-Log -Level INFO -Message "Permissions parameter is empty or null"
 		}
 	}
 	catch
 	{
+		# Log
 		Write-Log -Level ERROR -Message "Error removing service '$ServiceType' permission '$Permissions': $($_.Exception.Message)"
 	}
 }
