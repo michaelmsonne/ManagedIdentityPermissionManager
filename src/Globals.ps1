@@ -298,54 +298,6 @@ function Get-ManagedIdentityCount
 }
 
 # Validate the current PowerShell modules required to execute this tool
-<#function Check-Modules
-{
-	# Array of modules needed
-	$requiredModules = @("Microsoft.Graph.Authentication", "Microsoft.Graph.Applications")
-	
-	# Log
-	Write-Log -Level INFO -Message "Starting check for needed PowerShell Modules..."
-	
-	# Check every module needed for tool
-	foreach ($module in $requiredModules)
-	{
-		# Check if allready present/installed
-		if (-not (Get-Module -Name $module))
-		{
-			try
-			{
-				# Import module if found
-				Import-Module $module -ErrorAction Stop
-				
-				# Log
-				Write-Log -Level INFO -Message "Importing module '$module'..."	
-			}	
-			catch
-			{
-				# Log
-				Write-Log -Level INFO -Message "Module '$module' is not installed. Installing..."
-				
-				# Install module
-				Install-Module -Name $module -Scope CurrentUser -Force:$true
-				
-				Write-Log -Level INFO -Message "Importing module '$module'..."
-				
-				# Import module after installed
-				Import-Module $module				
-			}
-		}
-		else
-		{
-			# Log
-			Write-Log -Level INFO -Message "Module '$module' is already imported."
-		}
-	}
-	
-	# Log
-	Write-Log -Level INFO -Message "Check for needed PowerShell Modules complete"
-}
-#>
-
 function Check-Modules
 {
 	# Array of modules needed with minimum versions
