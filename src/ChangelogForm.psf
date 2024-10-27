@@ -1177,14 +1177,12 @@ $formChangelog_Load = {
 	
 	# Changelog text
 	$textboxChangelog.Text =
-	"1.0.0.1 (xx/xx/2024):`n
+	"1.0.0.1 (27/10/2024):`n
 
 `tFixed:
 `t• Added check for PowerShell execution policy`n
 `t   (to support load of Microsoft.Graph.Authentication.psm1 when error 'cannot be loaded `n
 `t   because running scripts is disabled on this system')`n
-
-`tFixed:
 `t• Optimized the PowerShell Module check/install process to be more user friendly`n
 `t• Fixed login functions, so if not logged in after press on 'Connect to Microsoft Graph'`n
 `t   (via timeout or incomplete Context) the tool will not try to get Managed Identityes`n
@@ -1220,6 +1218,6 @@ $pictureboxSupportMe_Click={
 	
 }
 ]]></Code>
-  <Mode>0</Mode>
+  <Mode>1</Mode>
   <Assemblies />
 </File>
