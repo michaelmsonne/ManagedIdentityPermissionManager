@@ -93,8 +93,6 @@ To be continued...
 ## Download
 Ready to take control of your Managed Identity permissions? Download the tool now and get started:
 
-> **Download the tool here (coming soon)**
-
 [Download the latest version](../../releases/latest)
 
 [Version History](CHANGELOG.md)
