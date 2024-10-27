@@ -109,7 +109,7 @@ Ready to take control of your Managed Identity permissions? Download the tool no
 - **Azure/Entra ID Directory** permissions to manage Managed Identities and access scopes.
 
 ####
-- For changes, **PowerShell Studio** is it it for now
+- For changes, **PowerShell Studio** is it for now
 
 ## Development history
 From the early Proof of Concept (PoC) to the official release, this tool has evolved with new features and improvements based on feedback. Check out the development updates on LinkedIn for a behind-the-scenes look:
