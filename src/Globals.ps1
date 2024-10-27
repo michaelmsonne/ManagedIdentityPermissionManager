@@ -7,7 +7,7 @@ $global:managedIdentities
 $global:clearExistingPermissions
 $global:darkModeStateUI
 
-$global:FormVersion = "1.0.0.0"
+$global:FormVersion = "1.0.0.1"
 $global:Author = "Michael Morten Sonne"
 $global:ToolName = "Managed Identity Permission Manager"
 $global:AuthorEmail = ""
@@ -22,6 +22,33 @@ $LogPath = "$Env:USERPROFILE\AppData\Local\$global:ToolName"
 # Variable that provides the location of the script
 [string]$ScriptDirectory = Get-ScriptDirectory
 
+# Checks the current execution policy for the process
+function Check-ExecutionPolicy
+{
+	try
+	{
+		Write-Log -Level INFO -Message "Getting PowerShell execution policy..."
+		$executionPolicy = Get-ExecutionPolicy -Scope Process
+		if ($executionPolicy -ne "Unrestricted" -and $executionPolicy -ne "Bypass")
+		{
+			Write-Log -Level INFO -Message "Current execution policy is '$executionPolicy'."
+			
+			Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
+			Write-Log -Level INFO -Message "Execution policy set to 'Bypass' for the current process."
+		}
+		else
+		{
+			Write-Log -Level INFO -Message "Current execution policy is '$executionPolicy'. No need to change."
+		}
+	}
+	catch
+	{
+		Write-Log -Level ERROR -Message "Failed to set execution policy: $($_.Exception.Message)"
+		throw
+	}
+}
+
+# Get current Windows colour theme (dard or light)
 function Is-WindowsInDarkMode
 {
 	# Path to the registry key
@@ -270,47 +297,76 @@ function Get-ManagedIdentityCount
 	return $global:managedIdentities.Count
 }
 
-# Function to check PowerShell Modules
+# Validate the current PowerShell modules required to execute this tool
 function Check-Modules
 {
-	# Array of modules needed
-	$requiredModules = @("Microsoft.Graph.Authentication", "Microsoft.Graph.Applications")
+	# Array of modules needed with minimum versions
+	$requiredModules = @(
+		@{ Name = "Microsoft.Graph.Authentication"; MinVersion = "0.0" },
+		@{ Name = "Microsoft.Graph.Applications"; MinVersion = "0.0" }
+	)
 	
 	# Log
 	Write-Log -Level INFO -Message "Starting check for needed PowerShell Modules..."
 	
-	# Check every module needed for tool
+	$modulesToInstall = @()
 	foreach ($module in $requiredModules)
 	{
-		# Check if allready present/installed
-		if (-not (Get-Module -Name $module))
+		Write-Log -Level INFO -Message "Checking module '$($module.Name)'..."
+		$installedVersions = Get-Module -ListAvailable $module.Name
+		if ($installedVersions)
 		{
-			try
+			if ($installedVersions[0].Version -lt [version]$module.MinVersion)
 			{
-				# Import module if found
-				Import-Module $module -ErrorAction Stop
-				
-				# Log
-				Write-Log -Level INFO -Message "Importing module '$module'..."	
-			}	
-			catch
+				Write-Log -Level INFO -Message "New version required for module '$($module.Name)'"
+				$modulesToInstall += $module.Name
+			}
+			else
 			{
-				# Log
-				Write-Log -Level INFO -Message "Module '$module' is not installed. Installing..."
-				
-				# Install module
-				Install-Module -Name $module -Scope CurrentUser -Force:$true
-				
-				Write-Log -Level INFO -Message "Importing module '$module'..."
-				
-				# Import module after installed
-				Import-Module $module				
+				Write-Log -Level INFO -Message "Module '$($module.Name)' is already installed."
+				Import-Module $module.Name -ErrorAction Stop
+				Write-Log -Level INFO -Message "Importing module '$($module.Name)'..."
 			}
 		}
 		else
 		{
+			Write-Log -Level INFO -Message "Module '$($module.Name)' is not installed."
+			$modulesToInstall += $module.Name
+		}
+	}
+	
+	if ($modulesToInstall.Count -gt 0)
+	{
+		Write-Log -Level INFO -Message "Missing required PowerShell modules. Prompting for installation..."
+		
+		# Concatenate module names into a single string
+		$modulesList = $modulesToInstall -join ", "
+				
+		# Aks if the user will install needed modules
+		$ConfirmInstallMissingPowerShellModule = Show-MsgBox -Prompt "The following required PowerShell modules are missing:`r`n`r`n$modulesList.`r`n`r`nWould you like to install these modules now?" -Title "Missing required PowerShell modules" -Icon Question -BoxType YesNo -DefaultButton 2
+		
+		# Get confirmation
+		If ($ConfirmInstallMissingPowerShellModule -eq "Yes")
+		{
 			# Log
-			Write-Log -Level INFO -Message "Module '$module' is already imported."
+			Write-Log -Level INFO -Message "Set to install needed PowerShell Modules - confirmed by user"
+			
+			Write-Log -Level INFO -Message "Installing modules..."
+			foreach ($module in $modulesToInstall)
+			{
+				Write-Log -Level INFO -Message "Installing module '$module'..."
+				Install-Module $module -Scope CurrentUser -Force -ErrorAction Stop
+				Write-Log -Level INFO -Message "Importing module '$module'..."
+				Import-Module $module -ErrorAction Stop
+			}
+			Write-Log -Level INFO -Message "Modules installed."
+		}
+		else
+		{
+			# Log
+			Write-Log -Level INFO -Message "Set to keep current state for reset existing permissions - confirmation to change is cancled by user"
+			
+			Write-Log -Level ERROR -Message "Exiting setup. Please install required modules and re-run the setup."
 		}
 	}
 	
@@ -340,7 +396,7 @@ function ConnectToGraph
 			Write-Log -Level INFO -Message "Connected to Microsoft Graph as '$($context.Account)' (Tenant: '$($context.TenantId)', App: '$($context.AppName)', Auth: $($context.AuthType)/$($context.ContextScope), Token: '$($context.TokenCredentialType)')"
 			
 			# Set state
-			$ConnectedState = $true
+			$global:ConnectedState = $true
 		}
 		else
 		{
@@ -348,7 +404,7 @@ function ConnectToGraph
 			Write-Log -Level ERROR -Message "Failed to connect to Microsoft Graph. Context is incomplete. Error: $_"
 			
 			# Set state
-			$ConnectedState = $false
+			$global:ConnectedState = $false
 		}
 	}
 	catch
@@ -357,7 +413,7 @@ function ConnectToGraph
 		Write-Log -Level ERROR -Message "Failed to connect to Microsoft Graph. Error: $_"
 		
 		# Set state
-		$ConnectedState = $false
+		$global:ConnectedState = $false
 	}
 }
 
