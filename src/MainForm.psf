@@ -2084,6 +2084,9 @@ $buttonConnectMicrosoftGraph_Click = {
 	{
 		try
 		{
+			# Check ExecutionPolicy
+			Check-ExecutionPolicy
+			
 			# Check installed/loaded modules
 			Check-Modules
 			
@@ -2091,7 +2094,7 @@ $buttonConnectMicrosoftGraph_Click = {
 			ConnectToGraph
 			
 			# If connected, set states
-			if ($global:ConnectedState = $true)
+			if ($global:ConnectedState -eq $true)
 			{
 				$labelConnectionStatus.Text = "Connected"
 				$labelConnectionStatus.ForeColor = 'Green'
@@ -2104,7 +2107,7 @@ $buttonConnectMicrosoftGraph_Click = {
 			else
 			{
 				# If not connected set state
-				$global:ConnectedState = $false
+				$global:ConnectedState -eq $false
 				
 				$labelConnectionStatus.Text = "Not connected"
 				$labelConnectionStatus.ForeColor = 'Red'
