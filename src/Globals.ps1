@@ -422,10 +422,6 @@ function Check-Modules
 	Write-Log -Level INFO -Message "Check for needed PowerShell Modules complete"
 }
 
-
-
-
-
 # Function to connect to Microsoft Graph
 function ConnectToGraph
 {
