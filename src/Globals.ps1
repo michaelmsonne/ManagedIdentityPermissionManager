@@ -7,7 +7,7 @@ $global:managedIdentities
 $global:clearExistingPermissions
 $global:darkModeStateUI
 
-$global:FormVersion = "1.0.0.1"
+$global:FormVersion = "1.0.0.2"
 $global:Author = "Michael Morten Sonne"
 $global:ToolName = "Managed Identity Permission Manager"
 $global:AuthorEmail = ""
@@ -22,29 +22,123 @@ $LogPath = "$Env:USERPROFILE\AppData\Local\$global:ToolName"
 # Variable that provides the location of the script
 [string]$ScriptDirectory = Get-ScriptDirectory
 
+function StartAsAdmin
+{
+	# Check if the current process is running with elevated privileges
+	$isElevated = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+	
+	if (-not $isElevated)
+	{
+		# Restart the current process as administrator
+		$processPath = [System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
+		#$arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$processPath`""
+		
+		Write-Log -Level INFO -Message "Restarting $processPath as administrator..."
+		Start-Process $processPath -Verb RunAs
+		
+		# Exit the current process
+		[System.Environment]::Exit(0)
+	}
+}
+
+function Is-Administrator
+{
+	# Get the current Windows identity
+	$currentIdentity = [Security.Principal.WindowsIdentity]::GetCurrent()
+	
+	# Create a Windows principal object
+	$principal = New-Object Security.Principal.WindowsPrincipal($currentIdentity)
+	
+	# Check if the current principal is in the Administrator role
+	return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+}
+
+function Get-CurrentExecutionFilename
+{
+	# Get the current execution location
+	$currentLocation = Get-Location
+	
+	# Get the path of the currently executing assembly
+	# Get the path of the currently running process
+	$processPath = [System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
+	$scriptName = [System.IO.Path]::GetFileName($processPath)
+	
+	# Get the current hostname using the .NET method
+	$hostname = [System.Net.Dns]::GetHostName()
+	
+	# Output the current location and script name
+	Write-Log -Level INFO -Message "Current execution location: '$($currentLocation.Path)\$scriptName' on host '$hostname'"
+}
+
 # Checks the current execution policy for the process
 function Check-ExecutionPolicy
 {
+	#StartAsAdmin
+	
+	if (Is-Administrator)
+	{
+		# TODO
+	}
+	
 	try
 	{
 		Write-Log -Level INFO -Message "Getting PowerShell execution policy..."
-		$executionPolicy = Get-ExecutionPolicy -Scope Process
-		if ($executionPolicy -ne "Unrestricted" -and $executionPolicy -ne "Bypass")
+		$executionPolicies = Get-ExecutionPolicy -List
+		
+		# Concatenate execution policies into a single string
+		$policyString = ($executionPolicies | ForEach-Object { "$($_.Scope): $($_.ExecutionPolicy)" }) -join ", "
+		Write-Log -Level INFO -Message "Execution policies: $policyString"
+		
+		$processPolicy = $executionPolicies | Where-Object { $_.Scope -eq 'Process' }
+		$currentUserPolicy = $executionPolicies | Where-Object { $_.Scope -eq 'CurrentUser' }
+		$effectivePolicy = $executionPolicies | Where-Object { $_.Scope -eq 'MachinePolicy' -or $_.Scope -eq 'UserPolicy' }
+		
+		if ($effectivePolicy.ExecutionPolicy -ne 'Undefined')
 		{
-			Write-Log -Level INFO -Message "Current execution policy is '$executionPolicy'."
+			Write-Log -Level INFO -Message "Execution policy is set by Group Policy. Current effective policy is '$($effectivePolicy.ExecutionPolicy)'."
+			return
+		}
+		
+		if ($processPolicy.ExecutionPolicy -ne "Unrestricted" -and $processPolicy.ExecutionPolicy -ne "Bypass")
+		{
+			Write-Log -Level INFO -Message "Current process execution policy is '$($processPolicy.ExecutionPolicy)'."
 			
-			Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
-			Write-Log -Level INFO -Message "Execution policy set to 'Bypass' for the current process."
+			try
+			{
+				Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
+				Write-Log -Level INFO -Message "Execution policy set to 'Bypass' for the current process."
+			}
+			catch
+			{
+				if ($_.Exception.Message -match "Security error")
+				{
+					Write-Log -Level WARN -Message "Security error encountered. Attempting to set execution policy to 'RemoteSigned'..."
+					try
+					{
+						Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned -Force
+						Write-Log -Level INFO -Message "Execution policy set to 'RemoteSigned' for the current process."
+					}
+					catch
+					{
+						Write-Log -Level ERROR -Message "Failed to set execution policy to 'RemoteSigned': $($_.Exception.Message)"
+						
+						StartAsAdmin
+					}
+				}
+				else
+				{
+					Write-Log -Level ERROR -Message "Failed to set execution policy: $($_.Exception.Message)"
+				}
+			}
 		}
 		else
 		{
-			Write-Log -Level INFO -Message "Current execution policy is '$executionPolicy'. No need to change."
+			Write-Log -Level INFO -Message "Current process execution policy is '$($processPolicy.ExecutionPolicy)'. No need to change."
 		}
 	}
 	catch
 	{
-		Write-Log -Level ERROR -Message "Failed to set execution policy: $($_.Exception.Message)"
-		throw
+		Write-Log -Level ERROR -Message "An error occurred: $($_.Exception.Message)"
 	}
 }
 

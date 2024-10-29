@@ -2002,13 +2002,26 @@ function Get-ManagedIdentities
 	}
 }
 
-$formManagedIdentityPermi_Load={
+$formManagedIdentityPermi_Load = {
+	
+	# Example usage:
+	if (Is-Administrator)
+	{
+		Write-Log -Level INFO -Message "The current process is running with administrator privileges."
+	}
+	else
+	{
+		Write-Log -Level INFO -Message "The current process is NOT running with administrator privileges."
+	}
 	
 	# Check for log path when app starts up
 	CheckLogPath
 	
 	# Log
 	Write-Log -Level INFO -Message "The application $ToolName is started"
+	
+	# 
+	Get-CurrentExecutionFilename
 	
 	# Get theme mode
 	$global:darkModeStateUI = Is-WindowsInDarkMode
@@ -2469,6 +2482,6 @@ $aboutToolStripMenuItem_Click={
 	Show-AboutForm_psf
 }
 ]]></Code>
-  <Mode>0</Mode>
+  <Mode>1</Mode>
   <Assemblies />
 </File>
