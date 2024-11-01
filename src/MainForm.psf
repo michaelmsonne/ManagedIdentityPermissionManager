@@ -2084,13 +2084,6 @@ function Get-ManagedIdentities
 		
 		# Log
 		Write-Log -Level INFO -Message "List of Managed Identity updated with a total of '$(Get-ManagedIdentityCount)' Managed Identity´s"
-		
-		# Select the first item by default and update the TextBox
-		if ($sortedIdentities.Count -gt 0)
-		{
-			$checkedlistboxListOfManagedIdentity.SetItemChecked(0, $true)
-			Update-SelectedIdentity -selectedIndex 0
-		}
 	}
 	# Else if not connected
 	else
@@ -2106,6 +2099,9 @@ function Search-ManagedIdentities
 		[string]$searchQuery
 	)
 	
+	# Clear id
+	$textboxselectedIdentityID.Text = ""
+	
 	# Clear current items in the CheckedListBox
 	$checkedlistboxListOfManagedIdentity.Items.Clear()
 	
@@ -2117,13 +2113,6 @@ function Search-ManagedIdentities
 	{
 		$checkedlistboxListOfManagedIdentity.Items.Add($identity.DisplayName)
 	}
-	
-	# If there are filtered identities, select the first one
-	if ($global:filteredManagedIdentities.Count -gt 0)
-	{
-		$checkedlistboxListOfManagedIdentity.SetItemChecked(0, $true)
-		Update-SelectedIdentity -selectedIndex 0
-	}
 }
 
 function Update-SelectedIdentity
@@ -2132,10 +2121,7 @@ function Update-SelectedIdentity
 		[int]$selectedIndex
 	)
 	$selectedIdentity = $global:filteredManagedIdentities[$selectedIndex]
-	$roles = Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $selectedIdentity.Id
-	$roleDetails = $roles | ForEach-Object { "$($_.ResourceDisplayName) (AppRoleId: $($_.AppRoleId))" } -join ", "
 	$textboxselectedIdentityID.Text = "$($selectedIdentity.Id)"
-	#$textboxAssingedRoles.Text = "$roleDetails"
 }
 
 $formManagedIdentityPermi_Load = {
