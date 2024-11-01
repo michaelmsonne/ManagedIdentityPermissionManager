@@ -2640,6 +2640,7 @@ $aboutToolStripMenuItem_Click={
 	# Open form
 	Show-AboutForm_psf
 }
+
 $textboxSearch_TextChanged={
 	$searchQuery = $textboxSearch.Text
 	Search-ManagedIdentities -searchQuery $searchQuery
@@ -2666,10 +2667,15 @@ $checkedlistboxListOfManagedIdentity_ItemCheck=[System.Windows.Forms.ItemCheckEv
 	else
 	{
 		$textboxselectedIdentityID.Clear()
+		$textboxselectedIdentityName.Clear()
 		$textboxAssingedRoles.Clear()
 	}
 }
+
+$csvToolStripMenuItem_Click={
+
+}
 ]]></Code>
-  <Mode>1</Mode>
+  <Mode>0</Mode>
   <Assemblies />
 </File>
