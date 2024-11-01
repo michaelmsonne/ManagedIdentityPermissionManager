@@ -6,6 +6,8 @@ $global:ConnectedState = $false # Default value
 $global:managedIdentities
 $global:clearExistingPermissions
 $global:darkModeStateUI
+$global:sortedManagedIdentities
+$global:filteredManagedIdentities
 
 $global:FormVersion = "1.0.0.2"
 $global:Author = "Michael Morten Sonne"
@@ -515,7 +517,8 @@ function ConnectToGraph
 function Get-CurrentAppRoleAssignments
 {
 	param (
-		[string]$ManagedIdentityID
+		[string]$ManagedIdentityID,
+		[string]$ManagedIdentityName
 	)
 	
 	$result = ""
@@ -524,7 +527,7 @@ function Get-CurrentAppRoleAssignments
 		# Retrieve the current app role assignments for the specified service principal
 		
 		# Log
-		Write-Log -Level INFO -Message "Getting permissions for Managed Identity with Id: '$ManagedIdentityID'"
+		Write-Log -Level INFO -Message "Getting permissions for Managed Identity with Id: '$ManagedIdentityID', name '$ManagedIdentityName'"
 		
 		# Get current role assignments
 		$currentAppRoles = Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID -All -ErrorAction Stop
@@ -532,7 +535,7 @@ function Get-CurrentAppRoleAssignments
 		# Of any roles assigned
 		if ($currentAppRoles)
 		{
-			$result += "Current permissions assignments for Managed Identity ID '$ManagedIdentityID':`r`n"
+			$result += "Current permissions assignments for Managed Identity ID '$ManagedIdentityID', name '$ManagedIdentityName':`r`n"
 			foreach ($appRole in $currentAppRoles)
 			{
 				# Resolve ResourceId to Service Principal Name
@@ -559,14 +562,14 @@ AppRoleScope: '$appRoleScope'
 			}
 			
 			# Log
-			Write-Log -Level INFO -Message "Got current assigned permissions for Managed Identity ID '$ManagedIdentityID'"
+			Write-Log -Level INFO -Message "Got current assigned permissions for Managed Identity ID '$ManagedIdentityID', name '$ManagedIdentityName"
 		}
 		else
 		{
-			$result += "No AppRole assignments found for Managed Identity ID '$ManagedIdentityID'.`r`n"
+			$result += "No AppRole assignments found for Managed Identity ID '$ManagedIdentityID', name '$ManagedIdentityName.`r`n"
 			
 			# Log
-			Write-Log -Level INFO -Message "No AppRole assignments found for Managed Identity ID '$ManagedIdentityID'"
+			Write-Log -Level INFO -Message "No AppRole assignments found for Managed Identity ID '$ManagedIdentityID', name '$ManagedIdentityName"
 		}
 	}
 	catch
