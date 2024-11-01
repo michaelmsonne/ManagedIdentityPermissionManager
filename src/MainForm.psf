@@ -1968,9 +1968,7 @@ function Get-AssignableApiPermissionScopes
 
 function Get-ManagedIdentities
 {
-	# Get all managed identities
-	
-	# Ckecl current data in list to not keep old
+	# Clear current data in the ComboBox to not keep old items
 	$comboBox.Items.Clear()
 	
 	# If connected
@@ -1979,17 +1977,28 @@ function Get-ManagedIdentities
 		# Log
 		Write-Log -Level INFO -Message "Loading list of Managed Identity from tenant..."
 		
-		# Get all data
+		# Get all managed identities
 		$global:managedIdentities = Get-MgServicePrincipal -Filter "servicePrincipalType eq 'ManagedIdentity'" -All
 		
 		# Log
 		Write-Log -Level INFO -Message "Loaded updated the list of found Managed Identity´s from tenant."
 		
-		# Populate the ComboBox with managed identities
-		foreach ($identity in $managedIdentities)
+		# Create a custom object with DisplayName and Id, then sort by DisplayName
+		$sortedIdentities = $global:managedIdentities | Sort-Object DisplayName | ForEach-Object {
+			[PSCustomObject]@{
+				DisplayName = $_.DisplayName
+				Id		    = $_.Id
+			}
+		}
+		
+		# Populate the ComboBox with sorted managed identities
+		foreach ($identity in $sortedIdentities)
 		{
 			$comboBox.Items.Add($identity.DisplayName)
 		}
+		
+		# Store the sorted identities in a global variable for later use
+		$global:sortedManagedIdentities = $sortedIdentities
 		
 		# Log
 		Write-Log -Level INFO -Message "List of Managed Identity updated with a total of '$(Get-ManagedIdentityCount)' Managed Identity´s"
@@ -2142,10 +2151,10 @@ $buttonConnectMicrosoftGraph_Click = {
 $combobox_SelectedIndexChanged = {
 	
 	# Get the selected identity based on ComboBox selected index
-	$selectedIdentity = $global:managedIdentities[$comboBox.SelectedIndex]
+	$selectedIdentity = $global:sortedManagedIdentities[$comboBox.SelectedIndex]
 	
 	# Get roles assigned to the selected identity
-	$roles = Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $textboxselectedIdentityID.Text
+	$roles = Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $selectedIdentity.Id
 	
 	# Extract and format role names and AppRoleIds
 	$roleDetails = $roles | ForEach-Object { "$($_.ResourceDisplayName) (AppRoleId: $($_.AppRoleId))" } -join ", "
