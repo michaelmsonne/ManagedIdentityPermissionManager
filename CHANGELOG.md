@@ -1,3 +1,13 @@
+## [1.0.0.2] 01/11/2024
+
+Added:
+- Added an option to search for Managed Identityes in the list from tenant to manage (much better view also!)
+- Check for if the tool is running as administrator or not
+- Now logging current execution location of the tool
+
+Fixed:
+- Added some better logic for PowerShell execution policy
+
 ## [1.0.0.1] - 27/10/2024
 
 Fixed:
