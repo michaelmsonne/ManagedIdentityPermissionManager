@@ -1,4 +1,4 @@
-## [1.0.0.2] xx/xx/2024
+## [1.0.0.2] 01/11/2024
 
 Added:
 - Added an option to search for Managed Identityes in the list from tenant to manage (much better view also!)
