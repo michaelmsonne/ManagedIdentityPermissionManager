@@ -2670,6 +2670,6 @@ $checkedlistboxListOfManagedIdentity_ItemCheck=[System.Windows.Forms.ItemCheckEv
 	}
 }
 ]]></Code>
-  <Mode>0</Mode>
+  <Mode>1</Mode>
   <Assemblies />
 </File>
