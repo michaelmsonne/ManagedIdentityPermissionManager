@@ -1,4 +1,4 @@
-# Azure Managed Identity Permission Manager
+# Azure / Entra ID Managed Identity Permission Manager
 
 <p align="center">
   <a href="https://github.com/michaelmsonne/ManagedIdentityPermissionManager"><img src="https://img.shields.io/github/languages/top/michaelmsonne/ManagedIdentityPermissionManager.svg"></a>
