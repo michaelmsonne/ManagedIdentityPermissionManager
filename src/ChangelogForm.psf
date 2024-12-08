@@ -1182,6 +1182,10 @@ $formChangelog_Load = {
 `tAdded:
 `t• Added option to download the lastest v. of the tool direct from a GitHub release!
 
+`tFixed:
+`t• Some more logging added to functions`n
+`t• Fixed some typos in logging, to give a better understanding`n
+
 1.0.0.2 (01/11/2024):`n
 
 `tAdded:
