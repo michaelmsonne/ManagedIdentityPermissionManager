@@ -1177,7 +1177,12 @@ $formChangelog_Load = {
 	
 	# Changelog text
 	$textboxChangelog.Text =
-	"1.0.0.2 (01/11/2024):`n
+	"1.0.0.3 (00/12/2024):`n
+
+`tAdded:
+`t• Added option to download the lastest v. of the tool direct from a GitHub release!
+
+1.0.0.2 (01/11/2024):`n
 
 `tAdded:
 `t• Added an option to search for Managed Identityes in the list from tenant to manage`n
