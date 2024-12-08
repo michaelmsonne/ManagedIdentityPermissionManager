@@ -35,7 +35,7 @@ function StartAsAdmin
 		$processPath = [System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
 		#$arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$processPath`""
 		
-		Write-Log -Level INFO -Message "Restarting $processPath as administrator..."
+		Write-Log -Level INFO -Message "Restarting '$processPath' as administrator..."
 		Start-Process $processPath -Verb RunAs
 		
 		# Exit the current process
@@ -89,7 +89,7 @@ function Check-ExecutionPolicy
 		
 		# Concatenate execution policies into a single string
 		$policyString = ($executionPolicies | ForEach-Object { "$($_.Scope): $($_.ExecutionPolicy)" }) -join ", "
-		Write-Log -Level INFO -Message "Execution policies: $policyString"
+		Write-Log -Level INFO -Message "Execution policies: '$policyString'"
 		
 		$processPolicy = $executionPolicies | Where-Object { $_.Scope -eq 'Process' }
 		$currentUserPolicy = $executionPolicies | Where-Object { $_.Scope -eq 'CurrentUser' }
@@ -160,10 +160,14 @@ function Is-WindowsInDarkMode
 		if ($useLightTheme.$registryValueName -eq 0)
 		{
 			return $true # Dark mode
+			
+			Write-Log -Level INFO -Message "Detected Windows is running as Dark mode - setting application to this theme as default"
 		}
 		else
 		{
 			return $false # Light mode
+			
+			Write-Log -Level INFO -Message "Detected Windows is running as Light mode - setting application to this theme as default"
 		}
 	}
 	catch
