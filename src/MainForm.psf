@@ -2244,6 +2244,27 @@ $buttonConnectMicrosoftGraph_Click = {
 			# Check installed/loaded modules
 			Check-Modules
 			
+			# Get tenant ID from textbox if provided
+			$tenantId = $null
+			if ($textboxTenantToConnectToGraph.Text -ne "")
+			{
+				$LookupInput = $textboxTenantToConnectToGraph.Text
+				Write-Log -Level INFO -Message "Tenant ID lookup input not empty - looking up: '$LookupInput'..."
+				
+				$tenantId = Get-TenantId -LookupInputData $LookupInput
+				Write-Log -Level INFO -Message "Tenant ID lookup input not empty - got tenantId: '$tenantId'"
+			}
+			
+			# Connect to Microsoft Graph
+			if ($tenantId)
+			{
+				ConnectToGraph -TenantId $tenantId
+			}
+			else
+			{
+				ConnectToGraph
+			}
+			
 			# Connect
 			ConnectToGraph
 			
@@ -2670,11 +2691,11 @@ $buttonLookupTenantID_Click={
 		#Write-Log -Level INFO -Message "buttonLookupTenantID_Click tenantId: $tenantId"
 		if ($tenantId)
 		{
-			Write-Log -Level INFO -Message "Tenant ID: $tenantId"
+			Write-Log -Level INFO -Message "Tenant ID for '$LookupInput' is: '$tenantId'"
 		}
 		else
 		{
-			Write-Log -Level INFO -Message "Failed to retrieve tenant ID."
+			Write-Log -Level INFO -Message "Failed to retrieve tenant ID for '$LookupInput'."
 		}
 	}
 	catch
@@ -2684,8 +2705,7 @@ $buttonLookupTenantID_Click={
 		
 		Write-Log -Level ERROR -Message $errorMessage
 	}
-}
-]]></Code>
+}]]></Code>
   <Mode>1</Mode>
   <Assemblies />
 </File>

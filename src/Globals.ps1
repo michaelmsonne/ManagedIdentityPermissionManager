@@ -477,11 +477,24 @@ function Check-Modules
 # Function to connect to Microsoft Graph
 function ConnectToGraph
 {
+	param (
+		[string]$TenantId
+	)
+	
 	# Log
 	Write-Log -Level INFO -Message "Starting to connect to Microsoft Graph..."
 	
-	# Connect
-	Connect-MgGraph -NoWelcome -Scopes 'Application.Read.All', 'AppRoleAssignment.ReadWrite.All'
+	# Connect with or without tenant ID
+	if ($TenantId)
+	{
+		Write-Log -Level INFO -Message "Connecting to Microsoft Graph with Tenant ID: $TenantId"
+		Connect-MgGraph -TenantId $TenantId -NoWelcome -Scopes 'Application.Read.All', 'AppRoleAssignment.ReadWrite.All'
+	}
+	else
+	{
+		Write-Log -Level INFO -Message "Connecting to Microsoft Graph without specific Tenant ID"
+		Connect-MgGraph -NoWelcome -Scopes 'Application.Read.All', 'AppRoleAssignment.ReadWrite.All'
+	}
 	
 	# Check if the connection is successful
 	try
@@ -1017,21 +1030,41 @@ function Get-TenantId
 		$url = "https://login.microsoftonline.com/$LookupInputData/v2.0/.well-known/openid-configuration"
 	}
 	
-	Write-Log -Level INFO -Message "Sending GET for '$LookupInputData' - URL: '$url'"
+	Write-Log -Level INFO -Message "Sending GET request for '$LookupInputData' - URL: '$url'"
 	
 	try
 	{
+		# Send GET request to get data needed
 		$response = Invoke-RestMethod -Uri $url -Method Get
-		Write-Log -Level INFO -Message "Response: $($response | Out-String)"
+		
+		# Log (debug data only)
+		#Write-Log -Level INFO -Message "Response: $($response | Out-String)"
 		
 		# Extract the tenant ID from the issuer field
 		$tenantId = $response.issuer -replace 'https://sts.windows.net/', '' -replace 'https://login.microsoftonline.com/', '' -replace '/v2.0', '' -replace '/', ''
-		Write-Log -Level INFO -Message "Extracted Tenant ID: $tenantId"
+		
+		# Log
+		Write-Log -Level INFO -Message "Extracted Tenant ID: '$tenantId' from GET response"
+		
+		# Return data
 		return $tenantId
 	}
-	catch
-	{
-		Write-Error "Failed to retrieve tenant ID for input: $LookupInputData"
+	catch [System.Net.WebException] {
+		# Log specific web exception
+		Write-Log -Level ERROR -Message "WebException occurred: $($_.Exception.Message)"
+		Write-Log -Level ERROR -Message "Status: $($_.Exception.Status)"
+		if ($_.Exception.Response)
+		{
+			$responseStream = $_.Exception.Response.GetResponseStream()
+			$reader = New-Object System.IO.StreamReader($responseStream)
+			$responseBody = $reader.ReadToEnd()
+			Write-Log -Level ERROR -Message "Response Body: $responseBody"
+		}
+		return $null
+	}
+	catch [System.Exception] {
+		# Log general exception
+		Write-Log -Level ERROR -Message "Failed to retrieve tenant ID for input: $LookupInputData. Error: $($_.Exception.Message)"
 		return $null
 	}
 }
