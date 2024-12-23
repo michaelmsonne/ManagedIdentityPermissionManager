@@ -9,7 +9,7 @@ $global:darkModeStateUI
 $global:sortedManagedIdentities
 $global:filteredManagedIdentities
 
-$global:FormVersion = "1.0.0.2"
+$global:FormVersion = "1.0.0.3"
 $global:Author = "Michael Morten Sonne"
 $global:ToolName = "Managed Identity Permission Manager"
 $global:AuthorEmail = ""
@@ -35,7 +35,7 @@ function StartAsAdmin
 		$processPath = [System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
 		#$arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$processPath`""
 		
-		Write-Log -Level INFO -Message "Restarting $processPath as administrator..."
+		Write-Log -Level INFO -Message "Restarting '$processPath' as administrator..."
 		Start-Process $processPath -Verb RunAs
 		
 		# Exit the current process
@@ -89,7 +89,7 @@ function Check-ExecutionPolicy
 		
 		# Concatenate execution policies into a single string
 		$policyString = ($executionPolicies | ForEach-Object { "$($_.Scope): $($_.ExecutionPolicy)" }) -join ", "
-		Write-Log -Level INFO -Message "Execution policies: $policyString"
+		Write-Log -Level INFO -Message "Execution policies: '$policyString'"
 		
 		$processPolicy = $executionPolicies | Where-Object { $_.Scope -eq 'Process' }
 		$currentUserPolicy = $executionPolicies | Where-Object { $_.Scope -eq 'CurrentUser' }
@@ -160,10 +160,14 @@ function Is-WindowsInDarkMode
 		if ($useLightTheme.$registryValueName -eq 0)
 		{
 			return $true # Dark mode
+			
+			Write-Log -Level INFO -Message "Detected Windows is running as Dark mode - setting application to this theme as default"
 		}
 		else
 		{
 			return $false # Light mode
+			
+			Write-Log -Level INFO -Message "Detected Windows is running as Light mode - setting application to this theme as default"
 		}
 	}
 	catch
@@ -473,11 +477,24 @@ function Check-Modules
 # Function to connect to Microsoft Graph
 function ConnectToGraph
 {
+	param (
+		[string]$TenantId
+	)
+	
 	# Log
 	Write-Log -Level INFO -Message "Starting to connect to Microsoft Graph..."
 	
-	# Connect
-	Connect-MgGraph -NoWelcome -Scopes 'Application.Read.All', 'AppRoleAssignment.ReadWrite.All'
+	# Connect with or without tenant ID
+	if ($TenantId)
+	{
+		Write-Log -Level INFO -Message "Connecting to Microsoft Graph with Tenant ID: $TenantId"
+		Connect-MgGraph -TenantId $TenantId -NoWelcome -Scopes 'Application.Read.All', 'AppRoleAssignment.ReadWrite.All'
+	}
+	else
+	{
+		Write-Log -Level INFO -Message "Connecting to Microsoft Graph without specific Tenant ID"
+		Connect-MgGraph -NoWelcome -Scopes 'Application.Read.All', 'AppRoleAssignment.ReadWrite.All'
+	}
 	
 	# Check if the connection is successful
 	try
@@ -943,5 +960,111 @@ function Remove-AllServicePrincipalPermissions
 	{
 		# Log
 		Write-Log -Level ERROR -Message "Error removing all permissions for managed identity '$ManagedIdentityID': $($_.Exception.Message)"
+	}
+}
+
+function Get-LatestReleaseFromGitHub
+{
+	$repo = "michaelmsonne/ManagedIdentityPermissionManager"
+	$file = "ManagedIdentityPermissionManager.exe"
+	$releasesUrl = "https://api.github.com/repos/$repo/releases"
+	
+	Write-Log -Level INFO -Message "Determining latest release..."
+	$tag = (Invoke-WebRequest -Uri $releasesUrl -UseBasicParsing | ConvertFrom-Json)[0].tag_name
+	
+	$downloadUrl = "https://github.com/$repo/releases/download/$tag/$file"
+	Write-Log -Level INFO -Message "Downloading latest release from GitHub API at: '$downloadUrl'"
+	
+	# Get the current execution location
+	$currentLocation = Get-Location
+	
+	# Get the path
+	$outputFile = Join-Path -Path $env:USERPROFILE\Downloads -ChildPath $file #$($currentLocation.Path)
+	Invoke-WebRequest -Uri $downloadUrl -OutFile $outputFile
+	
+	# Ask user
+	$ConfirmStartLAstDownloadedVFromGitHub = Show-MsgBox -Prompt "Latest release v. $tag on GitHub is downloaded successfully to the path:`r`n`r`n'$outputFile'.`r`n`r`nDo you want to restart the application with the new version?" -Title "Download Complete" -Icon Question -BoxType YesNo -DefaultButton 1
+	
+	# If user comfirmed
+	If ($ConfirmStartLAstDownloadedVFromGitHub -eq "Yes")
+	{
+		# Log
+		Write-Log -Level INFO -Message "Restarting application with the new version $tag ... - confirmed by user"
+		
+		# Start
+		Start-Process -FilePath $outputFile
+		$formManagedIdentityPermi.Close()
+		Stop-Process -Id $PID
+	}
+	else
+	{
+		# Log
+		Write-Log -Level INFO -Message "The new version $tag is downloaded to: $outputFile'"
+		
+		Show-MsgBox -Title "Download location" -Prompt "The new version '$tag' is downloaded to:`r`n`r`n'$outputFile'`r`n`r`nHere you can start it later when needed :)" -Icon Information -BoxType OKOnly
+	}
+}
+
+function Get-TenantId
+{
+	param (
+		[string]$LookupInputData
+	)
+	
+	# Log the received parameters
+	Write-Log -Level INFO -Message "Trying to get tenant data for: '$LookupInputData'"
+	
+	# Check if the input is a domain name or tenant ID
+	if ($LookupInputData -match '^[a-zA-Z0-9-]+\.[a-zA-Z]{2,}$')
+	{
+		Write-Log -Level INFO -Message "Input '$LookupInputData' is a domain"
+		
+		# Input is a domain name
+		$url = "https://login.microsoftonline.com/$LookupInputData/.well-known/openid-configuration"
+	}
+	else
+	{
+		Write-Log -Level INFO -Message "Input '$LookupInputData' is a tenant ID"
+		
+		# Input is a tenant ID
+		$url = "https://login.microsoftonline.com/$LookupInputData/v2.0/.well-known/openid-configuration"
+	}
+	
+	Write-Log -Level INFO -Message "Sending GET request for '$LookupInputData' - URL: '$url'"
+	
+	try
+	{
+		# Send GET request to get data needed
+		$response = Invoke-RestMethod -Uri $url -Method Get
+		
+		# Log (debug data only)
+		#Write-Log -Level INFO -Message "Response: $($response | Out-String)"
+		
+		# Extract the tenant ID from the issuer field
+		$tenantId = $response.issuer -replace 'https://sts.windows.net/', '' -replace 'https://login.microsoftonline.com/', '' -replace '/v2.0', '' -replace '/', ''
+		
+		# Log
+		Write-Log -Level INFO -Message "Extracted Tenant ID: '$tenantId' from GET response"
+		
+		# Return data
+		return $tenantId
+	}
+	catch [System.Net.WebException] {
+		# Log specific web exception
+		Write-Log -Level ERROR -Message "WebException occurred: $($_.Exception.Message)"
+		Write-Log -Level ERROR -Message "Status: $($_.Exception.Status)"
+		if ($_.Exception.Response)
+		{
+			$responseStream = $_.Exception.Response.GetResponseStream()
+			$reader = New-Object System.IO.StreamReader($responseStream)
+			$responseBody = $reader.ReadToEnd()
+			Write-Log -Level ERROR -Message "Response Body: $responseBody"
+		}
+		return $null
+	}
+	catch [System.Exception] {
+		# Log general exception
+		Write-Log -Level ERROR -Message "Failed to retrieve tenant ID for input: $LookupInputData. Error: $($_.Exception.Message)"
+		return $null
 	}
 }
