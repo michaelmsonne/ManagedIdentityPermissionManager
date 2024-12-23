@@ -991,3 +991,47 @@ function Get-LatestReleaseFromGitHub
 		Show-MsgBox -Title "Download location" -Prompt "The new version '$tag' is downloaded to:`r`n`r`n'$outputFile'`r`n`r`nHere you can start it later when needed :)" -Icon Information -BoxType OKOnly
 	}
 }
+
+function Get-TenantId
+{
+	param (
+		[string]$LookupInputData
+	)
+	
+	# Log the received parameters
+	Write-Log -Level INFO -Message "Trying to get tenant data for: '$LookupInputData'"
+	
+	# Check if the input is a domain name or tenant ID
+	if ($LookupInputData -match '^[a-zA-Z0-9-]+\.[a-zA-Z]{2,}$')
+	{
+		Write-Log -Level INFO -Message "Input '$LookupInputData' is a domain"
+		
+		# Input is a domain name
+		$url = "https://login.microsoftonline.com/$LookupInputData/.well-known/openid-configuration"
+	}
+	else
+	{
+		Write-Log -Level INFO -Message "Input '$LookupInputData' is a tenant ID"
+		
+		# Input is a tenant ID
+		$url = "https://login.microsoftonline.com/$LookupInputData/v2.0/.well-known/openid-configuration"
+	}
+	
+	Write-Log -Level INFO -Message "Sending GET for '$LookupInputData' - URL: '$url'"
+	
+	try
+	{
+		$response = Invoke-RestMethod -Uri $url -Method Get
+		Write-Log -Level INFO -Message "Response: $($response | Out-String)"
+		
+		# Extract the tenant ID from the issuer field
+		$tenantId = $response.issuer -replace 'https://sts.windows.net/', '' -replace '/v2.0', '' -replace '/', ''
+		Write-Log -Level INFO -Message "Extracted Tenant ID: $tenantId"
+		return $tenantId
+	}
+	catch
+	{
+		Write-Error "Failed to retrieve tenant ID for input: $LookupInputData"
+		return $null
+	}
+}
