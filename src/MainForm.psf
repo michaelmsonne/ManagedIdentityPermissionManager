@@ -2274,9 +2274,6 @@ $buttonConnectMicrosoftGraph_Click = {
 				ConnectToGraph
 			}
 			
-			# Connect
-			ConnectToGraph
-			
 			# If connected, set states
 			if ($global:ConnectedState -eq $true)
 			{
