@@ -1181,6 +1181,10 @@ $formChangelog_Load = {
 
 `tAdded:
 `t• Added option to download the lastest v. of the tool direct from a GitHub release!
+`t• Added the ability to connect to Microsoft Graph using a specific tenant ID.
+`t   Users can now enter a domain name or tenant ID in 'Tenant to connect' to connect
+`t   to a specific tenant. If the input is left empty, the connection will proceed
+`t   without specifying a tenant ID and use the last in the current users PowerShell.`n
 
 `tFixed:
 `t• Some more logging added to functions`n
