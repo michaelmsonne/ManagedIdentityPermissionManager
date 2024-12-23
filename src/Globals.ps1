@@ -1025,7 +1025,7 @@ function Get-TenantId
 		Write-Log -Level INFO -Message "Response: $($response | Out-String)"
 		
 		# Extract the tenant ID from the issuer field
-		$tenantId = $response.issuer -replace 'https://sts.windows.net/', '' -replace '/v2.0', '' -replace '/', ''
+		$tenantId = $response.issuer -replace 'https://sts.windows.net/', '' -replace 'https://login.microsoftonline.com/', '' -replace '/v2.0', '' -replace '/', ''
 		Write-Log -Level INFO -Message "Extracted Tenant ID: $tenantId"
 		return $tenantId
 	}
