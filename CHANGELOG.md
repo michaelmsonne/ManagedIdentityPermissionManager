@@ -1,3 +1,13 @@
+## [1.0.0.3] 23/12/2024
+
+Added:
+- Added option to download the lastest v. of the tool direct from a GitHub release!
+- Added the ability to connect to Microsoft Graph using a specific tenant ID. Users can now enter a domain name or tenant ID in 'Tenant to connect' to connect to a specific tenant. If the input is left empty, the connection will proceed without specifying a tenant ID and use the last in the current users PowerShell. Thanks #14 !
+
+Fixed:
+- Some more logging added to functions
+- Fixed some typos in logging, to give a better understanding
+
 ## [1.0.0.2] 01/11/2024
 
 Added:
