@@ -1198,6 +1198,9 @@ $formChangelog_Load = {
 `t• Export feature for Managed Identity permissions assigned to a specific Managed Identity
 `t   or all Managed Identities in tenant to a .csv file.
 
+`tFixed:
+`t• Some code/function cleanup`n
+
 1.0.0.3 (23/12/2024):`n
 
 `tAdded:

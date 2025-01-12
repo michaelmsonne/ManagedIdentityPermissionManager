@@ -43,7 +43,7 @@ function StartAsAdmin
 	}
 }
 
-function Is-Administrator
+function Test-Administrator
 {
 	# Get the current Windows identity
 	$currentIdentity = [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -73,11 +73,11 @@ function Get-CurrentExecutionFilename
 }
 
 # Checks the current execution policy for the process
-function Check-ExecutionPolicy
+function Test-ExecutionPolicy
 {
 	#StartAsAdmin
 	
-	if (Is-Administrator)
+	if (Test-Administrator)
 	{
 		# TODO
 	}
@@ -145,7 +145,7 @@ function Check-ExecutionPolicy
 }
 
 # Get current Windows colour theme (dard or light)
-function Is-WindowsInDarkMode
+function Test-WindowsInDarkMode
 {
 	# Path to the registry key
 	$registryPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize"
@@ -398,7 +398,7 @@ function Get-ManagedIdentityCount
 }
 
 # Validate the current PowerShell modules required to execute this tool
-function Check-Modules
+function Test-Modules
 {
 	# Array of modules needed with minimum versions
 	$requiredModules = @(
