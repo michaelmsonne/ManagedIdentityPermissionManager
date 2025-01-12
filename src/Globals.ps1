@@ -9,7 +9,7 @@ $global:darkModeStateUI
 $global:sortedManagedIdentities
 $global:filteredManagedIdentities
 
-$global:FormVersion = "1.0.0.3"
+$global:FormVersion = "1.0.0.4"
 $global:Author = "Michael Morten Sonne"
 $global:ToolName = "Managed Identity Permission Manager"
 $global:AuthorEmail = ""
@@ -1066,5 +1066,105 @@ function Get-TenantId
 		# Log general exception
 		Write-Log -Level ERROR -Message "Failed to retrieve tenant ID for input: $LookupInputData. Error: $($_.Exception.Message)"
 		return $null
+	}
+}
+
+function Export-ManagedIdentityPermissions
+{
+	param (
+		[string]$ManagedIdentityID,
+		[string]$ManagedIdentityName,
+		[string]$ExportFilePath
+	)
+	
+	try
+	{
+		# Get current role assignments
+		$currentAppRoles = Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID -All -ErrorAction Stop
+		
+		if ($currentAppRoles)
+		{
+			$permissions = @()
+			foreach ($appRole in $currentAppRoles)
+			{
+				# Resolve ResourceId to Service Principal Name
+				$resource = Get-MgServicePrincipal -ServicePrincipalId $appRole.ResourceId -ErrorAction Stop
+				$resourceName = $resource.DisplayName
+				
+				# Resolve AppRoleId to App Role Name and Value (Scope)
+				$appRoleDetails = $resource.AppRoles | Where-Object { $_.Id -eq $appRole.AppRoleId }
+				$appRoleName = $appRoleDetails.DisplayName
+				$appRoleScope = $appRoleDetails.Value
+				
+				$permissions += [PSCustomObject]@{
+					ManagedIdentityID   = $ManagedIdentityID
+					ManagedIdentityName = $ManagedIdentityName
+					ResourceName	    = $resourceName
+					AppRoleName		    = $appRoleName
+					AppRoleScope	    = $appRoleScope
+				}
+			}
+			
+			# Export to CSV
+			$permissions | Export-Csv -Path $ExportFilePath -NoTypeInformation
+			Write-Log -Level INFO -Message "All assigned permissions exported to '$ExportFilePath'"
+		}
+		else
+		{
+			Write-Log -Level INFO -Message "No permissions assigned to the managed identity."
+		}
+	}
+	catch
+	{
+		Write-Log -Level ERROR -Message "Error exporting permissions: $($_.Exception.Message)"
+	}
+}
+
+function Export-AllManagedIdentityPermissions
+{
+	param (
+		[string]$ExportFilePath
+	)
+	
+	try
+	{
+		$allPermissions = @()
+		foreach ($managedIdentity in $global:managedIdentities)
+		{
+			$ManagedIdentityID = $managedIdentity.Id
+			$ManagedIdentityName = $managedIdentity.DisplayName
+			$currentAppRoles = Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID -All -ErrorAction Stop
+			
+			if ($currentAppRoles)
+			{
+				foreach ($appRole in $currentAppRoles)
+				{
+					# Resolve ResourceId to Service Principal Name
+					$resource = Get-MgServicePrincipal -ServicePrincipalId $appRole.ResourceId -ErrorAction Stop
+					$resourceName = $resource.DisplayName
+					
+					# Resolve AppRoleId to App Role Name and Value (Scope)
+					$appRoleDetails = $resource.AppRoles | Where-Object { $_.Id -eq $appRole.AppRoleId }
+					$appRoleName = $appRoleDetails.DisplayName
+					$appRoleScope = $appRoleDetails.Value
+					
+					$allPermissions += [PSCustomObject]@{
+						ManagedIdentityID   = $ManagedIdentityID
+						ManagedIdentityName = $ManagedIdentityName
+						ResourceName	    = $resourceName
+						AppRoleName		    = $appRoleName
+						AppRoleScope	    = $appRoleScope
+					}
+				}
+			}
+		}
+		
+		# Export to CSV
+		$allPermissions | Export-Csv -Path $ExportFilePath -NoTypeInformation
+		Write-Log -Level INFO -Message "All assigned permissions exported to '$ExportFilePath'"
+	}
+	catch
+	{
+		Write-Log -Level ERROR -Message "Error exporting all permissions: $($_.Exception.Message)"
 	}
 }
