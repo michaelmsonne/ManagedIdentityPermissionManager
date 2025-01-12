@@ -552,7 +552,7 @@ function Get-CurrentAppRoleAssignments
 		# Of any roles assigned
 		if ($currentAppRoles)
 		{
-			$result += "Current permissions assignments for Managed Identity ID '$ManagedIdentityID' name '$ManagedIdentityName':`r`n"
+			$result += "Current permissions assignments for Managed Identity ID '$ManagedIdentityID' with name '$ManagedIdentityName':`r`n"
 			foreach ($appRole in $currentAppRoles)
 			{
 				# Resolve ResourceId to Service Principal Name
@@ -579,7 +579,7 @@ AppRoleScope: '$appRoleScope'
 			}
 			
 			# Log
-			Write-Log -Level INFO -Message "Got current assigned permissions for Managed Identity ID '$ManagedIdentityID' name '$ManagedIdentityName'"
+			Write-Log -Level INFO -Message "Got current assigned permissions for Managed Identity ID '$ManagedIdentityID' with name '$ManagedIdentityName'"
 		}
 		else
 		{
