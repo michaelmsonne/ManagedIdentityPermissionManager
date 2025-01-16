@@ -1201,6 +1201,7 @@ $formChangelog_Load = {
 `tFixed:
 `t• Some code/function cleanup`n
 `t• Some small types/log text for better understanding`n
+`t• Some cleanup of the GUI and order in the menu`n
 
 1.0.0.3 (23/12/2024):`n
 
