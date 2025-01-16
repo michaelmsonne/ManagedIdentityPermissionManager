@@ -2097,8 +2097,12 @@ function Get-ManagedIdentities
 		# Log
 		Write-Log -Level INFO -Message "Loading list of Managed Identity from tenant..."
 		
+		#Write-Log -Level INFO -Message "TEST BEFORE Get-MgServicePrincipal"
+		
 		# Get all managed identities
 		$global:managedIdentities = Get-MgServicePrincipal -Filter "servicePrincipalType eq 'ManagedIdentity'" -All
+		
+		#Write-Log -Level INFO -Message "TEST AFTER Get-MgServicePrincipal"
 		
 		# Log
 		Write-Log -Level INFO -Message "Loaded and updated the list of discovered Managed Identities from the tenant."
