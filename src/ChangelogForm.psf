@@ -1162,11 +1162,12 @@ $formChangelog_Load = {
 
 `tChanged:
 `t• Some cleanup of the GUI and order in the menu`n
+`t• Updated `Set-ControlTheme` function to ensure that controls tagged with 'DangerZone'
+`t   have their `ForeColor` set to red, regardless of the theme.`n
 
 `tFixed:
-`t• Some code/function cleanup`n
+`t• Improved code readability and maintainability by adding comments and structuring the code.`n
 `t• Some small types/log text for better understanding`n
-`t• Some cleanup of the GUI and order in the menu`n
 
 1.0.0.3 (23/12/2024):`n
 
@@ -1233,6 +1234,6 @@ $pictureboxSupportMe_Click={
 	
 }
 ]]></Code>
-  <Mode>0</Mode>
+  <Mode>1</Mode>
   <Assemblies />
 </File>
