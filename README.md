@@ -42,7 +42,7 @@ Whether you're a system administrator or a developer, this tool offers a powerfu
 
 Your feedback and support are always welcome! 🤩🤘
 
-## Why this tool is needed
+## Why this tool is needed in the community
 Many existing solutions for managing Managed Identity permissions lack the ease of use and cohesion that this tool provides. This PowerShell tool solves those issues by offering:
 
 - **Simplicity**: Consolidates everything in one place—no need to search for scripts.
