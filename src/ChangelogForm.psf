@@ -1154,7 +1154,7 @@ $formChangelog_Load = {
 	
 	# Changelog text
 	$textboxChangelog.Text =
-	"1.0.0.4 (00/00/2025):`n
+	"1.0.0.4 (24/01/2025):`n
 
 `tAdded:
 `t• Export feature for Managed Identity permissions assigned to a specific Managed Identity
