@@ -1,3 +1,16 @@
+## [1.0.0.4] 24/01/2025
+
+Added:
+- Export feature for Managed Identity permissions assigned to a specific Managed Identity or all Managed Identities in tenant to a .csv file.
+
+Changed:
+- Some cleanup of the GUI and order in the menu
+- Updated Set-ControlTheme function to ensure that controls tagged with 'DangerZone' have their ForeColor set to red, regardless of the theme.
+
+Fixed:
+- Improved code readability and maintainability by adding comments and structuring the code.
+- Some small types/log text for better understanding
+
 ## [1.0.0.3] 23/12/2024
 
 Added:
