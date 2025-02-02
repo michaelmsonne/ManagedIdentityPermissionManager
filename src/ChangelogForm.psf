@@ -1154,7 +1154,12 @@ $formChangelog_Load = {
 	
 	# Changelog text
 	$textboxChangelog.Text =
-	"1.0.0.4 (24/01/2025):`n
+	"1.0.0.5 (xx/xx/2025):`n
+
+`tAdded:
+`t• Get a full list all API scopes for used API´s in connected tenant.
+
+1.0.0.4 (24/01/2025):`n
 
 `tAdded:
 `t• Export feature for Managed Identity permissions assigned to a specific Managed Identity
