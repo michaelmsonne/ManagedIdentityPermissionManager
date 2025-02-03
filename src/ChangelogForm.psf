@@ -1157,7 +1157,30 @@ $formChangelog_Load = {
 	"1.0.0.5 (xx/xx/2025):`n
 
 `tAdded:
-`t• Get a full list all API scopes for used API´s in connected tenant.
+`t• Service Principal Filtering: Added functionality to filter and display service principals`n
+`t   based on the selected service type.
+`t• Added an 'All services'' entry to the ServiceComboBox to allow users to view and manage
+`t   permissions for all service principals.
+`t• Most Used Services: Ensured that the most used services is on top in the service to manage:
+`t   (Microsoft Graph, Office 365 Exchange Online, Office 365 Information Protection,
+`t   Office 365 SharePoint Online, WindowsDefenderATP, Microsoft Cloud App Security) appear at
+`t   the top of the ServiceComboBox in the specified order.
+`t• Detailed Input Validation: Enhanced input validation to provide detailed feedback on missing
+`t   fields, ensuring users are informed about which specific input data is missing.
+`t• Selected Scopes Validation: Added validation to check if any scopes are selected in the
+`t   checkedlistboxPermissionsToAssign and log appropriate messages.
+
+`tChanged:
+`t• Improved Logging: Enhanced logging to provide more detailed information about the
+`t   operations being performed, including the retrieval and filtering of service principals
+`t   and the addition of permission scopes.
+`t• Global Data Storage: Updated the code to store service principal data in a global hashtable
+`t   for reuse, reducing redundant API calls and improving efficiency.
+
+`tFixed:
+`t• Service ComboBox Retention: Fixed an issue where the ServiceComboBox would only display
+`t   the selected service, ensuring it retains all service principals even when a specific
+`t   service is selected.
 
 1.0.0.4 (24/01/2025):`n
 
