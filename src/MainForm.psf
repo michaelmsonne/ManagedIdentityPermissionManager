@@ -1917,142 +1917,89 @@ function Get-AssignableApiPermissionScopes
 		[string]$ServiceType
 	)
 	
-	# Clear list for existing ithems
-	$checkedlistboxPermissionsToAssign.Items.Clear()
-	
-	# Get all service principals
-	$allServicePrincipal = Get-MgServicePrincipal -All -Property "id,appId,displayName,appRoles,oauth2PermissionScopes,resourceSpecificApplicationPermissions"
-	
-	# Filter service principals based on the selected service type
-	$filteredServicePrincipal = $allServicePrincipal | Where-Object { $_.DisplayName -eq $ServiceType }
-	
-	# Store the filtered service principal data in the global hashtable
-	$global:ServicePrincipalData[$ServiceType] = $filteredServicePrincipal
-	
-	# Create a list of roles
-	$roles = $filteredServicePrincipal | ForEach-Object {
-		foreach ($r in $_.AppRoles)
-		{
-			[PSCustomObject]@{
-				AppId	    = $_.Id
-				DisplayName = $_.DisplayName
-				Id		    = $r.Id
-				RoleName    = $r.DisplayName
-				Value	    = $r.Value
-			}
-		}
-	}
-	
-	# Populate the CheckedListBox with roles
-	$checkedlistboxPermissionsToAssign.Items.Clear()
-	foreach ($role in $roles)
-	{
-		$roleDetails = "'$($role.DisplayName)', discription: '$($role.RoleName)', Role scope: '$($role.Value)', RoleId: '$($role.Id)'"
-		$checkedlistboxPermissionsToAssign.Items.Add($roleDetails)
-		
-		#$checkedlistboxPermissionsToAssign.Items.Add("$($role.DisplayName) - $($role.RoleName) ($($role.Value))")
-	}
-	
-	# Populate the ComboBox with service names only if they have assignable roles
-	$ServiceComboBox.Items.Clear()
-	$allServicePrincipal | ForEach-Object {
-		if ($_.AppRoles.Count -gt 0)
-		{
-			$ServiceComboBox.Items.Add($_.DisplayName)
-		}
-	}
-}
-
-<#
-function Get-AssignableApiPermissionScopes
-{
-	param (
-		[string]$ServiceType
-	)
-	
 	try
 	{
 		# Clear list for existing ithems
 		$checkedlistboxPermissionsToAssign.Items.Clear()
 		
-		# Determine the AppId based on the ServiceType
-		switch ($ServiceType)
-		{
-			"Microsoft Graph" {
-				$appId = '00000003-0000-0000-c000-000000000000'
-			}
-			"Exchange Online" {
-				$appId = '00000002-0000-0ff1-ce00-000000000000'
-			}
-			"SharePoint" {
-				$appId = '00000003-0000-0ff1-ce00-000000000000'
-			}
-			default {
-				# Log
-				Write-Log -Level INFO -Message "Invalid ServiceType specified. Valid values are 'Microsoft Graph', 'Exchange Online', 'SharePoint'."
-				return
-			}
-		}
-		
 		# Get the service principal for the specified AppId
-		Write-Log -Level INFO -Message "Retrieving service principal for AppId: '$appId'"
+		Write-Log -Level INFO -Message "Retrieving service principal for tenant..."
 		
-		# Get needed data
-		$servicePrincipal = Get-MgServicePrincipal -Filter "AppId eq '$appId'" -Property "id,appId,displayName,appRoles,oauth2PermissionScopes,resourceSpecificApplicationPermissions"
+		# Get all service principals
+		$allServicePrincipal = Get-MgServicePrincipal -All -Property "id,appId,displayName,appRoles,oauth2PermissionScopes,resourceSpecificApplicationPermissions"
+		
+		# Log
+		Write-Log -Level INFO -Message "Service principals retrieved - filtering data..."
 		
 		# Check if returned data
-		if ($null -eq $servicePrincipal)
+		if ($null -eq $allServicePrincipal)
 		{
 			# Log
-			Write-Log -Level INFO -Message "No service principal found with AppId '$appId', Service '$($servicePrincipal.DisplayName)'."
+			Write-Log -Level INFO -Message "No service principal found."
 			return
 		}
 		
-		# Log
-		Write-Log -Level INFO -Message "Service principal retrieved: AppId '$appId', '$($servicePrincipal.DisplayName)'"
+		# Filter service principals based on the selected service type
+		$filteredServicePrincipal = $allServicePrincipal | Where-Object { $_.DisplayName -eq $ServiceType }
 		
-		# Extract the permission scopes (AppRoles and Oauth2PermissionScopes)
-		$appRoles = $servicePrincipal.AppRoles
-		$oauth2PermissionScopes = $servicePrincipal.Oauth2PermissionScopes
+		# Store the filtered service principal data in the global hashtable
+		$global:ServicePrincipalData[$ServiceType] = $filteredServicePrincipal
+		
+		# Create a list of roles
+		$roles = $filteredServicePrincipal | ForEach-Object {
+			foreach ($r in $_.AppRoles)
+			{
+				[PSCustomObject]@{
+					AppId	    = $_.Id
+					DisplayName = $_.DisplayName
+					Id		    = $r.Id
+					RoleName    = $r.DisplayName
+					Value	    = $r.Value
+				}
+			}
+		}
+		
+		# Log
+		Write-Log -Level INFO -Message "Service principals retrieved - filtered and shorted data."
 		
 		# Check if scopes assigned
-		if ($appRoles.Count -eq 0 -and $oauth2PermissionScopes.Count -eq 0)
+		<#
+		if ($roles.Count -eq 0 -and $oauth2PermissionScopes.Count -eq 0)
 		{
 			# Log
 			Write-Log -Level INFO -Message "No assignable permission scopes found for service principal with AppId '$appId' service '$($servicePrincipal.DisplayName)'."
 			return
 		}
-		
-		# Log
-		Write-Log -Level INFO -Message "Assignable permission scopes retrieved for AppId '$appId' service '$($servicePrincipal.DisplayName)'."
+		#>
 		
 		# Populate the CheckedListBox with permission scopes
-		Write-Log -Level INFO -Message "Adding assignable permission scopes to permission list for AppId '$appId' service '$($servicePrincipal.DisplayName)'..."
+		Write-Log -Level INFO -Message "Adding assignable permission scopes to permission list..."
 		
-		foreach ($role in $appRoles)
+		# Loop all roles for adding to table
+		foreach ($role in $roles)
 		{
-			$roleDetails = "Role details: '$($role.DisplayName)', Role scope: '$($role.Value)', RoleId: '$($role.Id)'"
+			$roleDetails = "'$($role.DisplayName)', discription: '$($role.RoleName)', Role scope: '$($role.Value)', RoleId: '$($role.Id)'"
 			$checkedlistboxPermissionsToAssign.Items.Add($roleDetails)
+			
+			# Log
+			Write-Log -Level INFO -Message "Added all assignable permission scopes to permission list to the list for management."
 		}
 		
-		Write-Log -Level INFO -Message "Added all assignable permission scopes to permission list for AppId '$appId' service '$($servicePrincipal.DisplayName)' to the list for management."
-		
-		<#
-		foreach ($scope in $oauth2PermissionScopes)
-		{
-			$scopeDetails = "Scope details: $($scope.AdminConsentDisplayName), ScopeValue: $($scope.Value), ScopeId: $($scope.Id)"
-			$checkedlistboxPermissionsToAssign.Items.Add($scopeDetails)
+		# Populate the ComboBox with service names only if they have assignable roles
+		$ServiceComboBox.Items.Clear()
+		$allServicePrincipal | ForEach-Object {
+			if ($_.AppRoles.Count -gt 0)
+			{
+				$ServiceComboBox.Items.Add($_.DisplayName)
+			}
 		}
-		#>
-<#
 	}
 	catch
 	{
 		# Log
 		Write-Log -Level ERROR -Message "Error retrieving permission scopes: $_"
-	}
+	}	
 }
-#>
 
 function Get-ManagedIdentities
 {
@@ -2830,6 +2777,6 @@ $guideToolStripMenuItem_Click={
 	
 }
 ]]></Code>
-  <Mode>0</Mode>
+  <Mode>1</Mode>
   <Assemblies />
 </File>
