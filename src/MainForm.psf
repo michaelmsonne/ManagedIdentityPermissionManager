@@ -1919,31 +1919,51 @@ function Get-AssignableApiPermissionScopes
 	
 	try
 	{
-		# Clear list for existing ithems
+		# Clear list for existing items
 		$checkedlistboxPermissionsToAssign.Items.Clear()
 		
-		# Get the service principal for the specified AppId
-		Write-Log -Level INFO -Message "Retrieving service principal for tenant..."
-		
-		# Get all service principals
-		$allServicePrincipal = Get-MgServicePrincipal -All -Property "id,appId,displayName,appRoles,oauth2PermissionScopes,resourceSpecificApplicationPermissions"
-		
 		# Log
-		Write-Log -Level INFO -Message "Service principals retrieved - filtering data..."
+		Write-Log -Level INFO -Message "Retrieving service principals..."
 		
-		# Check if returned data
-		if ($null -eq $allServicePrincipal)
+		# Get the service principals based on the ServiceType
+		if (-not [string]::IsNullOrWhiteSpace($ServiceType) -and $ServiceType -ne "All services")
+		{
+			# Get the specific service principal
+			$filteredServicePrincipal = Get-MgServicePrincipal -Filter "DisplayName eq '$ServiceType'" -Property "id,appId,displayName,appRoles,oauth2PermissionScopes,resourceSpecificApplicationPermissions"
+			
+			# Log
+			Write-Log -Level INFO -Message "Service principal retrieved for ServiceType: '$ServiceType'."
+		}
+		else
+		{
+			# Get all service principals
+			$filteredServicePrincipal = Get-MgServicePrincipal -All -Property "id,appId,displayName,appRoles,oauth2PermissionScopes,resourceSpecificApplicationPermissions"
+			
+			# Log
+			Write-Log -Level INFO -Message "All service principals retrieved."
+		}
+		
+		# Check if returned data (exclude if "All services")
+		if ($null -eq $filteredServicePrincipal -and $ServiceType -ne "All services")
 		{
 			# Log
 			Write-Log -Level INFO -Message "No service principal found."
 			return
 		}
 		
-		# Filter service principals based on the selected service type
-		$filteredServicePrincipal = $allServicePrincipal | Where-Object { $_.DisplayName -eq $ServiceType }
-		
 		# Store the filtered service principal data in the global hashtable
-		$global:ServicePrincipalData[$ServiceType] = $filteredServicePrincipal
+		if (-not [string]::IsNullOrWhiteSpace($ServiceType) -and $ServiceType -ne "All services")
+		{
+			$global:ServicePrincipalData[$ServiceType] = $filteredServicePrincipal
+		}
+		else
+		{
+			$global:ServicePrincipalData = @{ }
+			foreach ($sp in $filteredServicePrincipal)
+			{
+				$global:ServicePrincipalData[$sp.DisplayName] = $sp
+			}
+		}
 		
 		# Create a list of roles
 		$roles = $filteredServicePrincipal | ForEach-Object {
@@ -1960,17 +1980,7 @@ function Get-AssignableApiPermissionScopes
 		}
 		
 		# Log
-		Write-Log -Level INFO -Message "Service principals retrieved - filtered and shorted data."
-		
-		# Check if scopes assigned
-		<#
-		if ($roles.Count -eq 0 -and $oauth2PermissionScopes.Count -eq 0)
-		{
-			# Log
-			Write-Log -Level INFO -Message "No assignable permission scopes found for service principal with AppId '$appId' service '$($servicePrincipal.DisplayName)'."
-			return
-		}
-		#>
+		Write-Log -Level INFO -Message "Service principals retrieved - filtered and sorted data."
 		
 		# Populate the CheckedListBox with permission scopes
 		Write-Log -Level INFO -Message "Adding assignable permission scopes to permission list..."
@@ -1978,19 +1988,67 @@ function Get-AssignableApiPermissionScopes
 		# Loop all roles for adding to table
 		foreach ($role in $roles)
 		{
-			$roleDetails = "'$($role.DisplayName)', discription: '$($role.RoleName)', Role scope: '$($role.Value)', RoleId: '$($role.Id)'"
+			$roleDetails = "'$($role.DisplayName)', description: '$($role.RoleName)', Role scope: '$($role.Value)', RoleId: '$($role.Id)'"
 			$checkedlistboxPermissionsToAssign.Items.Add($roleDetails)
-			
-			# Log
-			Write-Log -Level INFO -Message "Added all assignable permission scopes to permission list to the list for management."
 		}
 		
+		# Define the most used items in the desired order
+		$mostUsedItems = @("All services", "Microsoft Graph", "Office 365 Exchange Online", "Office 365 Information Protection", "Office 365 SharePoint Online", "WindowsDefenderATP", "Microsoft Cloud App Security")
+		
 		# Populate the ComboBox with service names only if they have assignable roles
-		$ServiceComboBox.Items.Clear()
-		$allServicePrincipal | ForEach-Object {
-			if ($_.AppRoles.Count -gt 0)
+		if (-not [string]::IsNullOrWhiteSpace($ServiceType) -and $ServiceType -ne "All services")
+		{
+			# Ensure the ComboBox retains all service principals
+			if ($ServiceComboBox.Items.Count -eq 0)
 			{
-				$ServiceComboBox.Items.Add($_.DisplayName)
+				$filteredServicePrincipal = Get-MgServicePrincipal -All -Property "id,appId,displayName,appRoles,oauth2PermissionScopes,resourceSpecificApplicationPermissions"
+				
+				# Sort the service principals
+				$sortedServicePrincipals = $filteredServicePrincipal | Sort-Object {
+					if ($mostUsedItems -contains $_.DisplayName)
+					{
+						[Array]::IndexOf($mostUsedItems, $_.DisplayName)
+					}
+					else
+					{
+						[Int32]::MaxValue
+					}
+				}
+				
+				# Populate the ComboBox
+				$ServiceComboBox.Items.Add("All services")
+				$sortedServicePrincipals | ForEach-Object {
+					if ($_.AppRoles.Count -gt 0)
+					{
+						$ServiceComboBox.Items.Add($_.DisplayName)
+					}
+				}
+			}
+		}
+		else
+		{
+			# Add all service principals
+			$ServiceComboBox.Items.Clear()
+			
+			# Sort the service principals
+			$sortedServicePrincipals = $filteredServicePrincipal | Sort-Object {
+				if ($mostUsedItems -contains $_.DisplayName)
+				{
+					[Array]::IndexOf($mostUsedItems, $_.DisplayName)
+				}
+				else
+				{
+					[Int32]::MaxValue
+				}
+			}
+			
+			# Populate the ComboBox
+			$ServiceComboBox.Items.Add("All services")
+			$sortedServicePrincipals | ForEach-Object {
+				if ($_.AppRoles.Count -gt 0)
+				{
+					$ServiceComboBox.Items.Add($_.DisplayName)
+				}
 			}
 		}
 	}
@@ -1998,7 +2056,7 @@ function Get-AssignableApiPermissionScopes
 	{
 		# Log
 		Write-Log -Level ERROR -Message "Error retrieving permission scopes: $_"
-	}	
+	}
 }
 
 function Get-ManagedIdentities
@@ -2260,7 +2318,6 @@ $combobox_SelectedIndexChanged = {
 
 $SubmitButton_Click = {
 	
-	#TODO: Place custom script here
 	if ($radiobuttonAddPermissions.Checked -eq $true)
 	{
 		# Get data to process
@@ -2268,20 +2325,31 @@ $SubmitButton_Click = {
 		$Service = $ServiceComboBox.Text
 		$Permissions = $PermissionsTextBox.Text
 		
-		# Debugging output
-		Write-Log -Level INFO -Message "Managed Identity ObjectID: '$ObjectID'"
-		Write-Log -Level INFO -Message "Service: '$Service'"
-		Write-Log -Level INFO -Message "Permissions: '$Permissions'"
-		
 		# Validate inputs
-		if (-not $ObjectID -or -not $Service -or -not $Permissions)
+		$missingFields = @()
+		
+		if (-not $ObjectID)
 		{
-			# Log
-			Write-Log -Level INFO -Message "All fields are required."
-			return
+			$missingFields += "ObjectID"
 		}
 		
-		#Update-Log -Message "Calling Add-ServicePrincipalPermission with ManagedIdentityID: '$ObjectID', Permissions: '$Permissions', ServiceType: '$Service'"
+		if (-not $Service)
+		{
+			$missingFields += "Service"
+		}
+		
+		if (-not $Permissions)
+		{
+			$missingFields += "Permissions"
+		}
+		
+		if ($missingFields.Count -gt 0)
+		{
+			$missingFieldsString = $missingFields -join ", "
+			Write-Log -Level INFO -Message "The following fields are required: $missingFieldsString"
+			[System.Windows.Forms.MessageBox]::Show("The following fields are required: $missingFieldsString", "Input Validation", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Warning)
+			return
+		}
 		
 		# Update permissions for managed idenityes
 		if ($clearExistingPermissions)
@@ -2301,19 +2369,31 @@ $SubmitButton_Click = {
 		$Service = $ServiceComboBox.Text
 		$Permissions = $PermissionsTextBox.Text
 		
-		# Debugging output
-		Write-Log -Level INFO -Message "Managed Identity ObjectID: '$ObjectID'"
-		Write-Log -Level INFO -Message "Service: '$Service'"
-		Write-Log -Level INFO -Message "Permissions: '$Permissions'"
-		
 		# Validate inputs
-		if (-not $ObjectID -or -not $Service -or -not $Permissions)
+		$missingFields = @()
+		
+		if (-not $ObjectID)
 		{
-			Write-Log -Level INFO -Message "All fields are required."
-			return
+			$missingFields += "ObjectID"
 		}
 		
-		#Update-Log -Message "Calling Add-ServicePrincipalPermission with ManagedIdentityID: '$ObjectID', Permissions: '$Permissions', ServiceType: '$Service'"
+		if (-not $Service)
+		{
+			$missingFields += "Service"
+		}
+		
+		if (-not $Permissions)
+		{
+			$missingFields += "Permissions"
+		}
+		
+		if ($missingFields.Count -gt 0)
+		{
+			$missingFieldsString = $missingFields -join ", "
+			Write-Log -Level INFO -Message "The following fields are required: $missingFieldsString"
+			[System.Windows.Forms.MessageBox]::Show("The following fields are required: $missingFieldsString", "Input Validation", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Warning)
+			return
+		}
 		
 		# Remove permissions form managed identity
 		Remove-ServicePrincipalPermission -ManagedIdentityID $ObjectID -Permissions "$Permissions" -ServiceType $Service				
@@ -2513,6 +2593,7 @@ $buttonGetAccessScopesForSe_Click = {
 
 $buttonAddSelectedAccessSco_Click = {
 	
+	# Initialize selected scopes array
 	$selectedScopes = @()
 	
 	# Loop selected scopes - add to tool for process
@@ -2523,7 +2604,7 @@ $buttonAddSelectedAccessSco_Click = {
 		{
 			$selectedScopes += $matches[1]
 			
-			Write-Log -Level INFO -Message $matches[1]
+			#Write-Log -Level INFO -Message $matches[1]
 		}
 		<#
 		elseif ($item -match "ScopeValue: ([^,]+)")
@@ -2535,15 +2616,23 @@ $buttonAddSelectedAccessSco_Click = {
 		#>
 	}
 	
-	# Log
-	Write-Log -Level INFO -Message "Adding access scope selected: '$($selectedScopes -join ', ')' to the list for permissions scopes to edit"
-	
-	# Format data
-	$PermissionsTextBox.Text = $selectedScopes -join ", "
-	
-	# Write-Log -Level INFO -Message "Adding: $selectedScopes"
-	
-	# $PermissionsTextBox
+	# Check if any scopes are selected
+	if ($selectedScopes.Count -gt 0)
+	{
+		# Log
+		Write-Log -Level INFO -Message "Adding access scope selected: '$($selectedScopes -join ', ')' to the list for permissions scopes to edit"
+		
+		# Format data
+		$PermissionsTextBox.Text = $selectedScopes -join ", "
+		
+		# Write-Log -Level INFO -Message "Adding: $selectedScopes"
+	}
+	else
+	{
+		# Log
+		Write-Log -Level INFO -Message "No access scopes selected to add"
+		[System.Windows.Forms.MessageBox]::Show("No access scopes selected to add.", "Input Validation", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Warning)
+	}
 }
 
 $textboxSccessScopeToAssignFilter_TextChanged={
