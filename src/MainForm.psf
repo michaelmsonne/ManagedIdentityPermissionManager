@@ -1928,6 +1928,8 @@ function Get-AssignableApiPermissionScopes
 		# Log
 		Write-Log -Level INFO -Message "Retrieving service principals..."
 		
+		# TODO Better code... If you know to make it better, let me know!
+		
 		# Get the service principals based on the ServiceType
 		if (-not [string]::IsNullOrWhiteSpace($ServiceType) -and $ServiceType -ne "All services")
 		{
@@ -1994,6 +1996,9 @@ function Get-AssignableApiPermissionScopes
 			$roleDetails = "'$($role.DisplayName)', description: '$($role.RoleName)', Role scope: '$($role.Value)', RoleId: '$($role.Id)'"
 			$checkedlistboxPermissionsToAssign.Items.Add($roleDetails)
 		}
+		
+		# Log
+		Write-Log -Level INFO -Message "Added assignable permission scopes to permission list."
 		
 		# Define the most used items in the desired order
 		$mostUsedItems = @("All services", "Microsoft Graph", "Office 365 Exchange Online", "Office 365 Information Protection", "Office 365 SharePoint Online", "WindowsDefenderATP", "Microsoft Cloud App Security")
@@ -2874,6 +2879,6 @@ $buttonDefaultServiceToManage_Click={
 	$ServiceComboBox.SelectedIndex = 1
 }
 ]]></Code>
-  <Mode>0</Mode>
+  <Mode>1</Mode>
   <Assemblies />
 </File>
