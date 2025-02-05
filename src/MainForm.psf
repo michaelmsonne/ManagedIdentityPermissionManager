@@ -1928,8 +1928,6 @@ function Get-AssignableApiPermissionScopes
 		# Log
 		Write-Log -Level INFO -Message "Retrieving service principals..."
 		
-		# TODO Better code... If you know to make it better, let me know!
-		
 		# Get the service principals based on the ServiceType
 		if (-not [string]::IsNullOrWhiteSpace($ServiceType) -and $ServiceType -ne "All services")
 		{
@@ -1937,7 +1935,7 @@ function Get-AssignableApiPermissionScopes
 			$filteredServicePrincipal = Get-MgServicePrincipal -Filter "DisplayName eq '$ServiceType'" -Property "id,appId,displayName,appRoles,oauth2PermissionScopes,resourceSpecificApplicationPermissions"
 			
 			# Log
-			Write-Log -Level INFO -Message "Service principal retrieved for ServiceType: '$ServiceType'."
+			Write-Log -Level INFO -Message "Service principal retrieved for service: '$ServiceType'."
 		}
 		else
 		{
@@ -2004,40 +2002,8 @@ function Get-AssignableApiPermissionScopes
 		$mostUsedItems = @("All services", "Microsoft Graph", "Office 365 Exchange Online", "Office 365 Information Protection", "Office 365 SharePoint Online", "WindowsDefenderATP", "Microsoft Cloud App Security")
 		
 		# Populate the ComboBox with service names only if they have assignable roles
-		if (-not [string]::IsNullOrWhiteSpace($ServiceType) -and $ServiceType -ne "All services")
+		if ($ServiceComboBox.Items.Count -eq 0)
 		{
-			# Ensure the ComboBox retains all service principals
-			if ($ServiceComboBox.Items.Count -eq 0)
-			{
-				$filteredServicePrincipal = Get-MgServicePrincipal -All -Property "id,appId,displayName,appRoles,oauth2PermissionScopes,resourceSpecificApplicationPermissions"
-				
-				# Sort the service principals
-				$sortedServicePrincipals = $filteredServicePrincipal | Sort-Object {
-					if ($mostUsedItems -contains $_.DisplayName)
-					{
-						[Array]::IndexOf($mostUsedItems, $_.DisplayName)
-					}
-					else
-					{
-						[Int32]::MaxValue
-					}
-				}
-				
-				# Populate the ComboBox
-				$ServiceComboBox.Items.Add("All services")
-				$sortedServicePrincipals | ForEach-Object {
-					if ($_.AppRoles.Count -gt 0)
-					{
-						$ServiceComboBox.Items.Add($_.DisplayName)
-					}
-				}
-			}
-		}
-		else
-		{
-			# Add all service principals
-			$ServiceComboBox.Items.Clear()
-			
 			# Sort the service principals
 			$sortedServicePrincipals = $filteredServicePrincipal | Sort-Object {
 				if ($mostUsedItems -contains $_.DisplayName)
