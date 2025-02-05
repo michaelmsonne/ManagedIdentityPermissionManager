@@ -2438,7 +2438,7 @@ $buttonConnectMicrosoftGraph_Click = {
 				Initialize-MasterItems
 				
 				# Populate the ComboBox with service names
-				Get-AssignableApiPermissionScopes -ServiceType "Microsoft Graph"
+				Get-AssignableApiPermissionScopes -ServiceType "All services"
 				
 				# Set default service in combobox
 				$ServiceComboBox.SelectedIndex = 1
@@ -2490,7 +2490,7 @@ $SubmitButton_Click = {
 		
 		if (-not $ObjectID)
 		{
-			$missingFields += "ObjectID"
+			$missingFields += "Managed Identity"
 		}
 		
 		if (-not $Service)
