@@ -1925,25 +1925,28 @@ function Get-AssignableApiPermissionScopes
 		# Clear list for existing items
 		$checkedlistboxPermissionsToAssign.Items.Clear()
 		
-		# Log
-		Write-Log -Level INFO -Message "Retrieving service principals..."
-		
 		# Get the service principals based on the ServiceType
 		if (-not [string]::IsNullOrWhiteSpace($ServiceType) -and $ServiceType -ne "All services")
 		{
+			# Log
+			Write-Log -Level INFO -Message "Retrieving access scopes for '$ServiceType'..."
+			
 			# Get the specific service principal
 			$filteredServicePrincipal = Get-MgServicePrincipal -Filter "DisplayName eq '$ServiceType'" -Property "id,appId,displayName,appRoles,oauth2PermissionScopes,resourceSpecificApplicationPermissions"
 			
 			# Log
-			Write-Log -Level INFO -Message "Service principal retrieved for service: '$ServiceType'."
+			Write-Log -Level INFO -Message "Service principal access scopes retrieved for service: '$ServiceType'."
 		}
 		else
 		{
+			# Log
+			Write-Log -Level INFO -Message "Retrieving access scopes for all service principals..."
+			
 			# Get all service principals
 			$filteredServicePrincipal = Get-MgServicePrincipal -All -Property "id,appId,displayName,appRoles,oauth2PermissionScopes,resourceSpecificApplicationPermissions"
 			
 			# Log
-			Write-Log -Level INFO -Message "All service principals retrieved."
+			Write-Log -Level INFO -Message "All service principals access scopes retrieved."
 		}
 		
 		# Check if returned data (exclude if "All services")
