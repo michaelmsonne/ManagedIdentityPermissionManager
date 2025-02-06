@@ -9,7 +9,7 @@ $global:darkModeStateUI
 $global:sortedManagedIdentities
 $global:filteredManagedIdentities
 
-$global:FormVersion = "1.0.0.4"
+$global:FormVersion = "1.1.0.0"
 $global:Author = "Michael Morten Sonne"
 $global:ToolName = "Managed Identity Permission Manager"
 $global:AuthorEmail = ""
@@ -23,6 +23,9 @@ $LogPath = "$Env:USERPROFILE\AppData\Local\$global:ToolName"
 
 # Variable that provides the location of the script
 [string]$ScriptDirectory = Get-ScriptDirectory
+
+# Define a global hashtable to store service principal data
+$global:ServicePrincipalData = @{ }
 
 function StartAsAdmin
 {
@@ -254,7 +257,7 @@ Function Write-Log
 		[Parameter(Mandatory = $True)]
 		[string]$Message,
 		[Parameter(Mandatory = $False)]
-		[string]$logfile = "$LogPath\$($ToolName)_Log_$($env:computername)" + "_" + (Get-Date -Format "dd/MM/yyyy") + ".log"
+		[string]$logfile = "$LogPath\$($ToolName)_Log_$($env:computername)" + "_" + (Get-Date -Format "dd-MM-yyyy") + ".log"
 	)
 	
 	$Stamp = (Get-Date).toString("dd/MM/yyyy HH:mm:ss")
@@ -617,35 +620,32 @@ function Add-ServicePrincipalPermission
 		[bool]$clearExistingPermissions
 	)
 	
-	#Write-Log -Level INFO -Message "ManagedIdentityID: $ManagedIdentityID"
-	
 	try
 	{
-		#Update-Log -Message "Received ServiceType: '$ServiceType'"
-		#Update-Log -Message "Received Permissions: '$Permissions'"
+		# Log
+		Write-Log -Level INFO -Message "ManagedIdentityID: $ManagedIdentityID"
+		Write-Log -Level INFO -Message "Received ServiceType: '$ServiceType'"
+		Write-Log -Level INFO -Message "Received Permissions: '$Permissions'"
 		
-		switch ($ServiceType)
+		if ($ServiceType -eq "All services")
 		{
-			"Microsoft Graph" {
-				$appId = '00000003-0000-0000-c000-000000000000'
-			}
-			"Exchange Online" {
-				$appId = '00000002-0000-0ff1-ce00-000000000000'
-			}
-			"SharePoint" {
-				$appId = '00000003-0000-0ff1-ce00-000000000000'
-			}
-			default {
-				Write-Log -Level INFO -Message "Invalid ServiceType specified. Valid values are 'Microsoft Graph', 'Exchange Online', 'SharePoint'."
-				return
-			}
+			Show-MsgBox -Title "Invalid Selection" -Prompt "Please select a specific service. Managing permissions for 'All services' is not possible." -Icon Critical -BoxType OKOnly
+			return
 		}
 		
-		$AppGraph = Get-MgServicePrincipal -Filter "AppId eq '$appId'"
+		# Get the service principal data from the global hashtable
+		$servicePrincipal = $global:ServicePrincipalData[$ServiceType]
+		
+		# Check if service principal was found
+		if ($null -eq $servicePrincipal)
+		{
+			Write-Log -Level INFO -Message "No service principal found for ServiceType '$ServiceType'."
+			return
+		}
 		
 		# Ensure Permissions is not null or empty
 		if (-not [string]::IsNullOrWhiteSpace($Permissions))
-		{			
+		{
 			if ($clearExistingPermissions -eq $true)
 			{
 				# Debug logging to verify ManagedIdentityID
@@ -704,7 +704,7 @@ function Add-ServicePrincipalPermission
 			{
 				# Log
 				Write-Log -Level INFO -Message "Set to keep existing permissions because clear existing permissions is not set"
-			}			
+			}
 			
 			# Split the permissions string into an array and trim each element
 			$Perms = $Permissions.Split(",") | ForEach-Object { $_.Trim() }
@@ -719,12 +719,12 @@ function Add-ServicePrincipalPermission
 					Write-Log -Level INFO -Message "Processing permission '$Scope' for service '$ServiceType'"
 					
 					# Get data
-					$AppRole = $AppGraph.AppRoles | Where-Object { $_.Value -eq $Scope }
+					$AppRole = $servicePrincipal.AppRoles | Where-Object { $_.Value -eq $Scope }
 					
 					# If exists
 					if ($AppRole)
 					{
-						$existingAppRole = Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID -All | Where-Object { $_.ResourceId -eq $AppGraph.Id -and $_.AppRoleId -eq $AppRole.Id }
+						$existingAppRole = Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID -All | Where-Object { $_.ResourceId -eq $servicePrincipal.Id -and $_.AppRoleId -eq $AppRole.Id }
 						if ($existingAppRole)
 						{
 							# Log
@@ -735,10 +735,10 @@ function Add-ServicePrincipalPermission
 							try
 							{
 								# Process
-								New-MgServicePrincipalAppRoleAssignment -PrincipalId $ManagedIdentityID -ServicePrincipalId $ManagedIdentityID -ResourceId $AppGraph.Id -AppRoleId $AppRole.Id -ErrorAction Stop
+								New-MgServicePrincipalAppRoleAssignment -PrincipalId $ManagedIdentityID -ServicePrincipalId $ManagedIdentityID -ResourceId $servicePrincipal.Id -AppRoleId $AppRole.Id -ErrorAction Stop
 								
 								# Validate
-								$existingAppRole = Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID -All | Where-Object { $_.ResourceId -eq $AppGraph.Id -and $_.AppRoleId -eq $AppRole.Id }
+								$existingAppRole = Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID -All | Where-Object { $_.ResourceId -eq $servicePrincipal.Id -and $_.AppRoleId -eq $AppRole.Id }
 								if ($existingAppRole)
 								{
 									# Log
@@ -792,8 +792,6 @@ function Remove-ServicePrincipalPermission
 		[string]$ServiceType
 	)
 	
-	#Write-Host "ManagedIdentityID: $ManagedIdentityID"
-	
 	try
 	{
 		# Log the received parameters
@@ -801,28 +799,22 @@ function Remove-ServicePrincipalPermission
 		Write-Log -Level INFO -Message "Service: '$ServiceType'"
 		Write-Log -Level INFO -Message "Permissions: '$Permissions'"
 		
-		switch ($ServiceType)
+		if ($ServiceType -eq "All services")
 		{
-			"Microsoft Graph" {
-				$appId = '00000003-0000-0000-c000-000000000000'
-			}
-			"Exchange Online" {
-				$appId = '00000002-0000-0ff1-ce00-000000000000'
-			}
-			"SharePoint" {
-				$appId = '00000003-0000-0ff1-ce00-000000000000'
-			}
-			default {
-				Write-Log -Level INFO -Message "Invalid ServiceType specified. Valid values are 'Microsoft Graph', 'Exchange Online', 'SharePoint'."
-				return
-			}
+			Show-MsgBox -Title "Invalid Selection" -Prompt "Please select a specific service. Managing permissions for 'All services' is not possible." -Icon Critical -BoxType OKOnly
+			return
 		}
 		
-		$AppScopes = Get-MgServicePrincipal -Filter "AppId eq '$appId'"
-		
-		if ($null -eq $AppScopes)
+		# Get the service principal data from the global hashtable
+		$servicePrincipal = $global:ServicePrincipalData[$ServiceType]
+				
+		# Check if service principal was found
+		if ($null -eq $servicePrincipal)
 		{
-			[System.Windows.Forms.MessageBox]::Show("Service principal not found.", "Error", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error)
+			Write-Log -Level INFO -Message "No service principal found for ServiceType '$ServiceType'."
+			
+			Show-MsgBox -Title "Error" -Prompt "Service principal not found." -Icon Exclamation -BoxType OKOnly
+			
 			return
 		}
 		
@@ -839,7 +831,7 @@ function Remove-ServicePrincipalPermission
 			
 			# Get all available permissions for the service principal
 			$allPermissions = @{ }
-			foreach ($appRole in $AppScopes.AppRoles)
+			foreach ($appRole in $servicePrincipal.AppRoles)
 			{
 				$allPermissions[$appRole.Value] = $appRole.Id
 				#Update-Log -Message "Available permission: $($appRole.Value) with ID: $($appRole.Id)"

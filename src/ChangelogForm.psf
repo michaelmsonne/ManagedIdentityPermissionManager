@@ -1154,7 +1154,37 @@ $formChangelog_Load = {
 	
 	# Changelog text
 	$textboxChangelog.Text =
-	"1.0.0.4 (24/01/2025):`n
+	"1.1.0.0 (06/02/2025):`n
+
+Major enhancements & features!
+
+`tAdded:
+`t• Service Principal filtering: Added functionality to filter and display service principals
+`t   based on the selected service type and the APIs used in the connected tenant.
+`t• Added an 'All Services' entry to the list of service principals and APIs used in the tenant
+`t   connection, allowing users to view and manage permissions for all service principals.
+`t• Most Used Services: Ensured that the most used services is on top in the service to manage:
+`t   (Microsoft Graph, Office 365 Exchange Online, Office 365 Information Protection,
+`t   Office 365 SharePoint Online, WindowsDefenderATP, Microsoft Cloud App Security) appear at
+`t   the top of the list in the specified order for now.
+`t• Detailed input validation: Enhanced input validation to provide detailed feedback on missing
+`t   fields, ensuring users are informed about which specific input data is missing and other
+`t   areas of the tools UI.
+`t• Selected scopes validation: Added validation to check if any scopes are selected in the
+`t   list of access scopes to manage or not, and log appropriate messages.
+
+`tChanged:
+`t• Improved logging: Enhanced logging to provide more detailed information about the
+`t   operations being performed, including the retrieval and filtering of service principals
+`t   and the addition of permission scopes.
+`t• Global Data Storage: Updated the code to store service principal data in a global hashtable
+`t   for reuse, reducing redundant API calls and improving efficiency for most of the code.
+`t• Some small UI tweaks.
+
+`tFixed:
+`t• Fixed the logging function to properly write to the logfile.`n
+
+1.0.0.4 (24/01/2025):`n
 
 `tAdded:
 `t• Export feature for Managed Identity permissions assigned to a specific Managed Identity

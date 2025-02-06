@@ -1,3 +1,23 @@
+## [1.1.0.0] 06/02/2025
+
+### Major enhancements & features! 🙌
+
+Added:
+- Service Principal filtering: Added functionality to filter and display service principals based on the selected service type and the APIs used in the connected tenant.
+- Added an 'All Services' entry to the list of service principals and APIs used in the tenant connection, allowing users to view and manage permissions for all service principals.
+- Most Used Services: Ensured that the most used services is on top in the service to manage.
+    Microsoft Graph, Office 365 Exchange Online, Office 365 Information Protection, Office 365 SharePoint Online, WindowsDefenderATP, Microsoft Cloud App Security appear at the top of the list in the specified order for now (feedback are welcome).
+- Detailed input validation: Enhanced input validation to provide detailed feedback on missing fields, ensuring users are informed about which specific input data is missing and other areas of the tools UI.
+- Selected scopes validation: Added validation to check if any scopes are selected in the list of access scopes to manage or not, and log appropriate messages.
+
+Changed:
+- Improved logging: Enhanced logging to provide more detailed information about the operations being performed, including the retrieval and filtering of service principals and the addition of permission scopes.
+- Global Data Storage: Updated the code to store service principal data in a global hashtable for reuse, reducing redundant API calls and improving efficiency for most of the code.
+- Some small UI tweaks.
+
+Fixed:
+- Fixed the logging function to properly write to the logfile.
+
 ## [1.0.0.4] 24/01/2025
 
 Added:

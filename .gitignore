@@ -7,3 +7,4 @@
 *.Package.ps1
 CustomMenu.inf
 .\src\bin\x64\*.exe
+src/ManagedIdentityPermissionManager.psproj.psbuild
