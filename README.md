@@ -169,13 +169,7 @@ Here's an example of assigning the `Mail.Send` permission to a managed identity 
 9. **Confirm the Action** in the dialog that appears.
 10. **Review the Logs** to ensure the permission was assigned successfully.
 
-By following these steps, you can easily assign new permissions to managed identities using the Managed Identity Permission Manager tool.
-
-## Development history
-From the early Proof of Concept (PoC) to the official release, this tool has evolved with new features and improvements based on feedback. Check out the development updates on LinkedIn for a behind-the-scenes look:
-
-- [LinkedIn Post 1](https://www.linkedin.com/feed/update/urn:li:activity:7253164999236329472/)
-- [LinkedIn Post 2](https://www.linkedin.com/feed/update/urn:li:activity:7254182659118030848/)
+By following these steps, you can easily assign new or remove permissions to a managed identities using the Managed Identity Permission Manager tool!
 
 # Contributing
 If you want to contribute to this project, please open an issue or submit a pull request. I welcome contributions :)
@@ -199,6 +193,22 @@ Commercial support
 This project is open-source and I invite everybody who can and will to contribute, but I cannot provide any support because I only created this as a "hobby project" ofc. with tbe best in mind. For commercial support, please contact me on LinkedIn so we can discuss the possibilities. It’s my choice to work on this project in my spare time, so if you have commercial gain from this project you should considering sponsoring me.
 
 <a href="https://www.buymeacoffee.com/sonnes" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 30px !important;width: 117px !important;"></a>
+
+## From the community
+
+- [Shared by Steve Turner, Senior Technical Specialist - Security at Microsoft](https://www.linkedin.com/feed/update/urn:li:activity:7292540328778059777/)
+- [Exciting updates coming soon!](https://www.linkedin.com/feed/update/urn:li:activity:7292295455378432001/)
+- [Release v. 1 of my Managed Identity Permission Management Tool is now live!](https://www.linkedin.com/feed/update/urn:li:activity:7255646356948586496/)
+- [🚀 Exciting milestone! 🚀](https://www.linkedin.com/feed/update/urn:li:activity:7256717372873474048/)
+- ...
+
+and many more posts online - check it out! ❤️
+
+## Development history
+From the early Proof of Concept (PoC) to the official release, this tool has evolved with new features and improvements based on feedback. Check out the development updates on LinkedIn for a behind-the-scenes look:
+
+- [LinkedIn Post 1](https://www.linkedin.com/feed/update/urn:li:activity:7253164999236329472/)
+- [LinkedIn Post 2](https://www.linkedin.com/feed/update/urn:li:activity:7254182659118030848/)
 
 Thanks.
 
