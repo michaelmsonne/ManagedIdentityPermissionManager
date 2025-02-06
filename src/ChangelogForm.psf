@@ -1154,7 +1154,9 @@ $formChangelog_Load = {
 	
 	# Changelog text
 	$textboxChangelog.Text =
-	"1.0.0.5 (xx/xx/2025):`n
+	"1.1.0.0 (06/02/2025):`n
+
+Major enhancements & features!
 
 `tAdded:
 `t• Service Principal filtering: Added functionality to filter and display service principals
@@ -1166,7 +1168,8 @@ $formChangelog_Load = {
 `t   Office 365 SharePoint Online, WindowsDefenderATP, Microsoft Cloud App Security) appear at
 `t   the top of the list in the specified order for now.
 `t• Detailed input validation: Enhanced input validation to provide detailed feedback on missing
-`t   fields, ensuring users are informed about which specific input data is missing.
+`t   fields, ensuring users are informed about which specific input data is missing and other
+`t   areas of the tools UI.
 `t• Selected scopes validation: Added validation to check if any scopes are selected in the
 `t   list of access scopes to manage or not, and log appropriate messages.
 
@@ -1176,6 +1179,9 @@ $formChangelog_Load = {
 `t   and the addition of permission scopes.
 `t• Global Data Storage: Updated the code to store service principal data in a global hashtable
 `t   for reuse, reducing redundant API calls and improving efficiency for most of the code.
+
+`tFixed:
+`t• Fixed the logging function to properly write to the logfile.`n
 
 1.0.0.4 (24/01/2025):`n
 
