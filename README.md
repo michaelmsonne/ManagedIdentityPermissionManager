@@ -34,6 +34,8 @@
   - [Example](#examples)
 - [Contributing](#contributing)
 - [Support](#support)
+  - [From the community](#from-the-community)
+  - [Development history](#development-history)
 - [FAQ](#faq)
 - [License](#license)
 
