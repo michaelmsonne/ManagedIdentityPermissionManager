@@ -1179,7 +1179,7 @@ Major enhancements & features!
 `t   and the addition of permission scopes.
 `t• Global Data Storage: Updated the code to store service principal data in a global hashtable
 `t   for reuse, reducing redundant API calls and improving efficiency for most of the code.
-t• Some small UI tweaks.
+`t• Some small UI tweaks.
 
 `tFixed:
 `t• Fixed the logging function to properly write to the logfile.`n
