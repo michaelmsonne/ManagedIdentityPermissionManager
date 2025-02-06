@@ -9,7 +9,7 @@ $global:darkModeStateUI
 $global:sortedManagedIdentities
 $global:filteredManagedIdentities
 
-$global:FormVersion = "1.0.0.5"
+$global:FormVersion = "1.1.0.0"
 $global:Author = "Michael Morten Sonne"
 $global:ToolName = "Managed Identity Permission Manager"
 $global:AuthorEmail = ""
@@ -257,7 +257,7 @@ Function Write-Log
 		[Parameter(Mandatory = $True)]
 		[string]$Message,
 		[Parameter(Mandatory = $False)]
-		[string]$logfile = "$LogPath\$($ToolName)_Log_$($env:computername)" + "_" + (Get-Date -Format "dd/MM/yyyy") + ".log"
+		[string]$logfile = "$LogPath\$($ToolName)_Log_$($env:computername)" + "_" + (Get-Date -Format "dd-MM-yyyy") + ".log"
 	)
 	
 	$Stamp = (Get-Date).toString("dd/MM/yyyy HH:mm:ss")
@@ -627,6 +627,12 @@ function Add-ServicePrincipalPermission
 		Write-Log -Level INFO -Message "Received ServiceType: '$ServiceType'"
 		Write-Log -Level INFO -Message "Received Permissions: '$Permissions'"
 		
+		if ($ServiceType -eq "All services")
+		{
+			Show-MsgBox -Title "Invalid Selection" -Prompt "Please select a specific service. Managing permissions for 'All services' is not possible." -Icon Critical -BoxType OKOnly
+			return
+		}
+		
 		# Get the service principal data from the global hashtable
 		$servicePrincipal = $global:ServicePrincipalData[$ServiceType]
 		
@@ -793,14 +799,22 @@ function Remove-ServicePrincipalPermission
 		Write-Log -Level INFO -Message "Service: '$ServiceType'"
 		Write-Log -Level INFO -Message "Permissions: '$Permissions'"
 		
+		if ($ServiceType -eq "All services")
+		{
+			Show-MsgBox -Title "Invalid Selection" -Prompt "Please select a specific service. Managing permissions for 'All services' is not possible." -Icon Critical -BoxType OKOnly
+			return
+		}
+		
 		# Get the service principal data from the global hashtable
 		$servicePrincipal = $global:ServicePrincipalData[$ServiceType]
-		
+				
 		# Check if service principal was found
 		if ($null -eq $servicePrincipal)
 		{
 			Write-Log -Level INFO -Message "No service principal found for ServiceType '$ServiceType'."
-			[System.Windows.Forms.MessageBox]::Show("Service principal not found.", "Error", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error)
+			
+			Show-MsgBox -Title "Error" -Prompt "Service principal not found." -Icon Exclamation -BoxType OKOnly
+			
 			return
 		}
 		
