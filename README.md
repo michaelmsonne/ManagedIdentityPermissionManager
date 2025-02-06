@@ -200,9 +200,12 @@ This project is open-source and I invite everybody who can and will to contribut
 - [Exciting updates coming soon!](https://www.linkedin.com/feed/update/urn:li:activity:7292295455378432001/)
 - [Release v. 1 of my Managed Identity Permission Management Tool is now live!](https://www.linkedin.com/feed/update/urn:li:activity:7255646356948586496/)
 - [🚀 Exciting milestone! 🚀](https://www.linkedin.com/feed/update/urn:li:activity:7256717372873474048/)
+- [Mention many times in etc. Merill Fernando´s entra.news](https://entra.news)
+- [Rod Trent, Microsoft](https://microsoftdefender.substack.com/p/microsoft-siem-and-xdr-weekly-wrap-c8c)
+- [Ivo Beerens, The latest technology news - December 2024](https://www.ivobeerens.nl/blog/2024/12/the-latest-technology-news-december-2025/)
 - ...
 
-and many more posts online - check it out! ❤️
+and many more posts and shareing online - check it out! ❤️
 
 ## Development history
 From the early Proof of Concept (PoC) to the official release, this tool has evolved with new features and improvements based on feedback. Check out the development updates on LinkedIn for a behind-the-scenes look:
