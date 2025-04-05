@@ -405,8 +405,8 @@ function Test-Modules
 {
 	# Array of modules needed with minimum versions
 	$requiredModules = @(
-		@{ Name = "Microsoft.Graph.Authentication"; MinVersion = "0.0" },
-		@{ Name = "Microsoft.Graph.Applications"; MinVersion = "0.0" }
+		@{ Name = "Microsoft.Graph.Authentication"; MinVersion = "2.25.0" },
+		@{ Name = "Microsoft.Graph.Applications"; MinVersion = "2.25.0" }
 	)
 	
 	# Log
@@ -419,14 +419,23 @@ function Test-Modules
 		$installedVersions = Get-Module -ListAvailable $module.Name
 		if ($installedVersions)
 		{
+			# Check if Beta version of the module is installed
+			$isBetaModule = $installedVersions | Where-Object { $_.Name -eq $module.Name -and ($_.Path -like "*Beta*" -or $_.Name -like "*Beta*") }
+			if ($isBetaModule)
+			{
+				Write-Log -Level ERROR -Message "Beta version of module '$($module.Name)' is installed. Exiting to avoid conflicts."
+				throw "Beta version of module '$($module.Name)' detected. Please uninstall the Beta module and re-run the script."
+			}
+			
+			# Check if installed version meets the minimum version requirement
 			if ($installedVersions[0].Version -lt [version]$module.MinVersion)
 			{
-				Write-Log -Level INFO -Message "New version required for module '$($module.Name)'"
+				Write-Log -Level INFO -Message "New version required for module '$($module.Name)'. Current installed version: $($installedVersions[0].Version), required minimum version: $($module.MinVersion)"
 				$modulesToInstall += $module.Name
 			}
 			else
 			{
-				Write-Log -Level INFO -Message "Module '$($module.Name)' is already installed."
+				Write-Log -Level INFO -Message "Module '$($module.Name)' meets the minimum version requirement. Current version: $($installedVersions[0].Version)"
 				Import-Module $module.Name -ErrorAction Stop
 				Write-Log -Level INFO -Message "Importing module '$($module.Name)'..."
 			}
