@@ -3,7 +3,7 @@
 ### Small enhancements & fixes
 
 Fixed:
-- Fix Windows Display Scaling issue when not properly handling high DPI settings, ensuring the UI scales correctly on all resolutions (but remember then the UI can looks ligger then your screen is...).
+- Fix Windows Display Scaling issue when not properly handling high DPI settings, ensuring the UI scales correctly on all resolutions (but remember then the UI can looks bigger then your screen is...).
 - Updated module detection logic to support scenarios where both Beta and GA versions of Microsoft Graph modules (e.g., `Microsoft.Graph.Authentication` and `Microsoft.Graph.Applications`) are installed, ensuring compatibility and avoiding unnecessary conflicts.
 
 ## [1.1.0.0] 06/02/2025
