@@ -1154,7 +1154,18 @@ $formChangelog_Load = {
 	
 	# Changelog text
 	$textboxChangelog.Text =
-	"1.1.0.0 (06/02/2025):`n
+	"1.1.0.1 (05/04/2025):`n
+
+`tFixed:
+`t• Fix Windows Display Scaling issue when not properly handling high DPI settings, ensuring
+`t   the UI scales correctly on all resolutions (but remember then the UI can looks ligger
+`t   then your screen is...).
+`t• Updated module detection logic to support scenarios where both Beta and GA versions of
+`t   Microsoft Graph modules (e.g., `Microsoft.Graph.Authentication` and
+`t   `Microsoft.Graph.Applications`) are installed, ensuring compatibility and avoiding
+`t   unnecessary conflicts.
+
+1.1.0.0 (06/02/2025):
 
 Major enhancements & features!
 
