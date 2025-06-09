@@ -2727,7 +2727,7 @@ $AboutForm_Load={
 $linklabelMyBlog_LinkClicked=[System.Windows.Forms.LinkLabelLinkClickedEventHandler]{
 	
 	Start-Process "https://blog.sonnes.cloud"
-	Write-Log -Level INFO -Message "The user clicked on the link for more information about on the website https://buymeacoffee.com/sonnes"
+	Write-Log -Level INFO -Message "The user clicked on the link for more information about on the website https://blog.sonnes.cloud"
 	
 }
 
