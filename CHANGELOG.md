@@ -1,3 +1,9 @@
+## [1.1.0.2] 15/06/2025
+
+Fixed:
+- Fix function call to test if running as Administrator or not (sorry I missed this one!)
+- Fix link to support me - was wrong 😆
+
 ## [1.1.0.1] 05/04/2025
 
 ### Small enhancements & fixes
