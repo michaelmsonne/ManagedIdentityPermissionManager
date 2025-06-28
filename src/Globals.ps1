@@ -61,18 +61,20 @@ function Test-Administrator
 function Get-CurrentExecutionFilename
 {
 	# Get the current execution location
-	$currentLocation = Get-Location
-	
-	# Get the path of the currently executing assembly
-	# Get the path of the currently running process
-	$processPath = [System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
-	$scriptName = [System.IO.Path]::GetFileName($processPath)
-	
-	# Get the current hostname using the .NET method
+	if ($PSCommandPath)
+	{
+		$exePath = $PSCommandPath
+	}
+	elseif ($MyInvocation.MyCommand.Path)
+	{
+		$exePath = $MyInvocation.MyCommand.Path
+	}
+	else
+	{
+		$exePath = [System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
+	}
 	$hostname = [System.Net.Dns]::GetHostName()
-	
-	# Output the current location and script name
-	Write-Log -Level INFO -Message "Current execution location: '$($currentLocation.Path)\$scriptName' on host '$hostname'"
+	Write-Log -Level INFO -Message "Current execution location: '$exePath' on host '$hostname'"
 }
 
 # Checks the current execution policy for the process
