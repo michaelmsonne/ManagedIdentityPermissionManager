@@ -1140,7 +1140,13 @@ $formChangelog_Load = {
 	
 	# Changelog text
 	$textboxChangelog.Text =
-	"1.1.0.2 (15/06/2025):`n
+	"1.1.0.3 (28/06/2025):`n
+
+`tFixed:
+`t• Fix code to get the current .exe filename - etc. to get the current path of .exe after
+`t   restarted an update.
+
+1.1.0.2 (15/06/2025):`n
 
 `tFixed:
 `t• Fix function call to test if running as Administrator or not (sorry I missed this one!)
@@ -1267,6 +1273,7 @@ $pictureboxSupportMe_Click={
 	
 }
 ]]></Code>
+  <TV>0</TV>
   <Mode>1</Mode>
   <Assemblies />
 </File>

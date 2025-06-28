@@ -9,7 +9,7 @@ $global:darkModeStateUI
 $global:sortedManagedIdentities
 $global:filteredManagedIdentities
 
-$global:FormVersion = "1.1.0.2"
+$global:FormVersion = "1.1.0.3"
 $global:Author = "Michael Morten Sonne"
 $global:ToolName = "Managed Identity Permission Manager"
 $global:AuthorEmail = ""
@@ -976,11 +976,8 @@ function Get-LatestReleaseFromGitHub
 	$downloadUrl = "https://github.com/$repo/releases/download/$tag/$file"
 	Write-Log -Level INFO -Message "Downloading latest release from GitHub API at: '$downloadUrl'"
 	
-	# Get the current execution location
-	$currentLocation = Get-Location
-	
 	# Get the path
-	$outputFile = Join-Path -Path $env:USERPROFILE\Downloads -ChildPath $file #$($currentLocation.Path)
+	$outputFile = Join-Path -Path $env:USERPROFILE\Downloads -ChildPath $file
 	Invoke-WebRequest -Uri $downloadUrl -OutFile $outputFile
 	
 	# Ask user
@@ -992,8 +989,16 @@ function Get-LatestReleaseFromGitHub
 		# Log
 		Write-Log -Level INFO -Message "Restarting application with the new version $tag ... - confirmed by user"
 		
-		# Start
-		Start-Process -FilePath $outputFile
+		# Start the new process and capture the process object
+		$process = Start-Process -FilePath $outputFile -PassThru
+		
+		# Log the path of the started process
+		Write-Log -Level INFO -Message "Started new process: $($process.Path) on host '$([System.Net.Dns]::GetHostName())'"
+		
+		# Wait briefly to ensure the new process starts
+		Start-Sleep -Seconds 1
+		
+		# Close the current form and stop the current process
 		$formManagedIdentityPermi.Close()
 		Stop-Process -Id $PID
 	}
