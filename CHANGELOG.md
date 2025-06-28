@@ -1,3 +1,8 @@
+## [1.1.0.3] 28/06/2025
+
+Fixed:
+- Fix code to get the current .exe filename - etc. to get the current path of .exe after restarted an update.
+
 ## [1.1.0.2] 15/06/2025
 
 Fixed:
