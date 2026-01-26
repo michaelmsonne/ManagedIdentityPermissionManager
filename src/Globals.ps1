@@ -9,7 +9,7 @@ $global:darkModeStateUI
 $global:sortedManagedIdentities
 $global:filteredManagedIdentities
 
-$global:FormVersion = "1.1.0.3"
+$global:FormVersion = "1.1.0.4"
 $global:Author = "Michael Morten Sonne"
 $global:ToolName = "Managed Identity Permission Manager"
 $global:AuthorEmail = ""
@@ -527,8 +527,9 @@ function ConnectToGraph
 		}
 		else
 		{
-			# Log
-			Write-Log -Level ERROR -Message "Failed to connect to Microsoft Graph. Context is incomplete. Error: $_"
+			# Log - do not use $_ here as there's no exception, just incomplete context
+			$contextInfo = if ($context) { "Context retrieved but missing required properties (ClientId: $($context.ClientId -ne $null), TenantId: $($context.TenantId -ne $null))" } else { "No context available" }
+			Write-Log -Level ERROR -Message "Failed to connect to Microsoft Graph. Context is incomplete. $contextInfo"
 			
 			# Set state
 			$global:ConnectedState = $false
@@ -536,8 +537,9 @@ function ConnectToGraph
 	}
 	catch
 	{
-		# Log
-		Write-Log -Level ERROR -Message "Failed to connect to Microsoft Graph. Error: $_"
+		# Capture the exception properly to avoid UI event pollution
+		$errorMessage = $_.Exception.Message
+		Write-Log -Level ERROR -Message "Failed to connect to Microsoft Graph. Error: $errorMessage"
 		
 		# Set state
 		$global:ConnectedState = $false

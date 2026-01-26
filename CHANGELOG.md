@@ -1,3 +1,8 @@
+## [1.1.0.4] 26/01/2026
+
+Fixed:
+- Fixed error handling in `ConnectToGraph` function that was incorrectly capturing UI event data (`MouseEventArgs`) instead of actual exceptions, which caused connection failures with Microsoft Graph module 2.34.0 and later versions. The function now properly validates the connection context and provides accurate error messages.
+
 ## [1.1.0.3] 28/06/2025
 
 Fixed:

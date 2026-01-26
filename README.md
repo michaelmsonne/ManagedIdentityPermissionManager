@@ -113,7 +113,7 @@ Ready to take control of your Managed Identity permissions? Download the tool no
 - None
 
 ### Prerequisites
-- **PowerShellMicrosoft Graph PowerShell** installed on your machine (Microsoft.Graph.Authentication, Microsoft.Graph.Applications)
+- **PowerShellMicrosoft Graph PowerShell** installed on your machine (Microsoft.Graph.Authentication, Microsoft.Graph.Applications) - minimum v. 2.25.0
 - **Azure/Entra ID Directory** permissions to manage Managed Identities and access scopes.
 
 For changes, **PowerShell Studio** is it for now
