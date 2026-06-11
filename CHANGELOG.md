@@ -1,3 +1,17 @@
+## [1.1.0.5] 11/06/2026
+
+### Enhanced error handling and diagnostics
+
+Added:
+- Added detailed scope logging during Microsoft Graph connection to display all granted permissions for better visibility and troubleshooting.
+- Added module version consistency checking during startup to detect and warn about multiple versions of Microsoft.Graph modules that could cause assembly loading errors.
+- Added context-aware error messages that provide specific guidance based on the type of error (module loading issues, permission issues, etc.).
+
+Fixed:
+- Fixed `Get-ManagedIdentityCount` function that was making redundant API calls to `Get-MgServicePrincipal`, causing performance issues and potential rate limiting. Now simply returns the count from already-fetched data.
+- Improved error handling in `Get-ManagedIdentities` to catch and report the actual root cause of failures (assembly loading, permissions, etc.) instead of generic error messages.
+- Enhanced error logging to include inner exception details and full error context for better diagnostics.
+
 ## [1.1.0.4] 26/01/2026
 
 Fixed:

@@ -9,7 +9,7 @@ $global:darkModeStateUI
 $global:sortedManagedIdentities
 $global:filteredManagedIdentities
 
-$global:FormVersion = "1.1.0.4"
+$global:FormVersion = "1.1.0.5"
 $global:Author = "Michael Morten Sonne"
 $global:ToolName = "Managed Identity Permission Manager"
 $global:AuthorEmail = ""
@@ -395,11 +395,15 @@ function Get-ScriptDirectory
 
 function Get-ManagedIdentityCount
 {
-	# Get data to global data to keep
-	$global:managedIdentities = Get-MgServicePrincipal -Filter "servicePrincipalType eq 'ManagedIdentity'" -All
-	
-	# Return data
-	return $global:managedIdentities.Count
+	# Return the count from the already-fetched global data
+	if ($global:managedIdentities)
+	{
+		return $global:managedIdentities.Count
+	}
+	else
+	{
+		return 0
+	}
 }
 
 # Validate the current PowerShell modules required to execute this tool
@@ -413,6 +417,33 @@ function Test-Modules
 	
 	# Log
 	Write-Log -Level INFO -Message "Starting check for needed PowerShell Modules..."
+	
+	# Check for version consistency across all Microsoft.Graph modules
+	Write-Log -Level INFO -Message "Checking for Microsoft.Graph module version consistency..."
+	$allGraphModules = Get-Module -ListAvailable Microsoft.Graph.* | Group-Object Name
+	$versionMismatches = @()
+	
+	foreach ($moduleGroup in $allGraphModules)
+	{
+		if ($moduleGroup.Count -gt 1)
+		{
+			$versions = $moduleGroup.Group | Select-Object -ExpandProperty Version -Unique
+			if ($versions.Count -gt 1)
+			{
+				$versionMismatches += "$($moduleGroup.Name): $($versions -join ', ')"
+			}
+		}
+	}
+	
+	if ($versionMismatches.Count -gt 0)
+	{
+		Write-Log -Level WARNING -Message "Multiple versions detected for some Microsoft.Graph modules:"
+		foreach ($mismatch in $versionMismatches)
+		{
+			Write-Log -Level WARNING -Message "  $mismatch"
+		}
+		Write-Log -Level WARNING -Message "This may cause 'Could not load assembly' errors. Consider running: Update-Module Microsoft.Graph -Force"
+	}
 	
 	$modulesToInstall = @()
 	foreach ($module in $requiredModules)
@@ -519,8 +550,19 @@ function ConnectToGraph
 		# If context exists
 		if ($context -and $context.ClientId -and $context.TenantId)
 		{
-			# Log
+			# Log connection details
 			Write-Log -Level INFO -Message "Connected to Microsoft Graph as '$($context.Account)' (Tenant: '$($context.TenantId)', App: '$($context.AppName)', Auth: $($context.AuthType)/$($context.ContextScope), Token: '$($context.TokenCredentialType)')"
+			
+			# Log granted scopes
+			if ($context.Scopes)
+			{
+				$scopesString = $context.Scopes -join ', '
+				Write-Log -Level INFO -Message "Granted scopes: $scopesString"
+			}
+			else
+			{
+				Write-Log -Level WARNING -Message "No scopes information available in context."
+			}
 			
 			# Set state
 			$global:ConnectedState = $true

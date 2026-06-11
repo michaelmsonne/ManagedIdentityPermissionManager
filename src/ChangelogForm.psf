@@ -1148,7 +1148,28 @@ $formChangelog_Load = {
 	
 	# Changelog text
 	$textboxChangelog.Text =
-	"1.1.0.4 (26/01/2026):`n
+	"1.1.0.5 (11/06/2026):`n
+
+Enhanced error handling and diagnostics
+
+`tAdded:
+`t• Added detailed scope logging during Microsoft Graph connection to display all granted
+`t   permissions for better visibility and troubleshooting.
+`t• Added module version consistency checking during startup to detect and warn about
+`t   multiple versions of Microsoft.Graph modules that could cause assembly loading errors.
+`t• Added context-aware error messages that provide specific guidance based on the type of
+`t   error (module loading issues, permission issues, etc.).
+
+`tFixed:
+`t• Fixed `Get-ManagedIdentityCount` function that was making redundant API calls to
+`t   `Get-MgServicePrincipal`, causing performance issues and potential rate limiting.
+`t   Now simply returns the count from already-fetched data.
+`t• Improved error handling in `Get-ManagedIdentities` to catch and report the actual root
+`t   cause of failures (assembly loading, permissions, etc.) instead of generic error messages.
+`t• Enhanced error logging to include inner exception details and full error context for
+`t   better diagnostics.
+
+1.1.0.4 (26/01/2026):`n
 
 `tFixed:
 `t• Fixed error handling in `ConnectToGraph` function that was incorrectly capturing UI event

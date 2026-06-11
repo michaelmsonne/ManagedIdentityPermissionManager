@@ -2073,11 +2073,7 @@ function Get-AssignableApiPermissionScopes
 
 function Get-ManagedIdentities
 {
-	# Clear current data in the CheckedListBox to not keep old items
-	$checkedlistboxListOfManagedIdentity.Items.Clear()
-	
-	# If connected
-	if ($global:ConnectedState)
+	try
 	{
 		# Log
 		Write-Log -Level INFO -Message "Loading list of Managed Identity from tenant..."
@@ -2115,11 +2111,45 @@ function Get-ManagedIdentities
 		
 		Update-NumberOfManagedIdentityCountLabel
 	}
-	# Else if not connected
-	else
+	catch
 	{
-		# Log
-		Write-Log -Level INFO -Message "Not connected - can´t load list of Managed Identity´s"
+		# Log detailed error information
+		Write-Log -Level ERROR -Message "Failed to retrieve Managed Identities: $($_.Exception.Message)"
+		
+		# Get inner exception details if available
+		if ($_.Exception.InnerException)
+		{
+			Write-Log -Level ERROR -Message "Inner Exception: $($_.Exception.InnerException.Message)"
+			
+			# Check if this is a module loading issue
+			if ($_.Exception.InnerException.Message -match "Could not load file or assembly")
+			{
+				Write-Log -Level ERROR -Message "This appears to be a module version mismatch or corruption issue."
+				Write-Log -Level ERROR -Message "Try updating all Microsoft.Graph modules to the same version:"
+				Write-Log -Level ERROR -Message "  Update-Module Microsoft.Graph -Force"
+				Write-Log -Level ERROR -Message "Or reinstall completely:"
+				Write-Log -Level ERROR -Message "  Uninstall-Module Microsoft.Graph -AllVersions -Force"
+				Write-Log -Level ERROR -Message "  Install-Module Microsoft.Graph -Scope CurrentUser"
+			}
+			elseif ($_.Exception.InnerException.Message -match "Forbidden|Unauthorized|Insufficient privileges")
+			{
+				Write-Log -Level ERROR -Message "This appears to be a permissions issue."
+				Write-Log -Level ERROR -Message "Please ensure you have 'Application.Read.All' or 'Directory.Read.All' permissions with admin consent."
+			}
+		}
+		else
+		{
+			# No inner exception, check main exception message
+			if ($_.Exception.Message -match "Forbidden|Unauthorized|Insufficient privileges")
+			{
+				Write-Log -Level ERROR -Message "Please ensure you have 'Application.Read.All' or 'Directory.Read.All' permissions with admin consent."
+			}
+		}
+		
+		# Log the full error record for debugging
+		Write-Log -Level ERROR -Message "Error Details: $($_ | Out-String)"
+		
+		throw
 	}
 }
 
@@ -3044,6 +3074,7 @@ $ServiceComboBox_SelectedIndexChanged={
 	
 }
 ]]></Code>
+  <TV>0</TV>
   <Mode>1</Mode>
   <Assemblies />
 </File>
