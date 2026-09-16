@@ -1,3 +1,8 @@
+## [1.1.0.6] 16/09/2026
+
+Fixed:
+- Fixed Microsoft Graph connection failure in some combinations/code paths caused by invalid log level usage (`WARNING`) in `Write-Log` calls. Updated log level to `WARN` to match the allowed ValidateSet values (`INFO,WARN,ERROR,FATAL,DEBUG`).
+
 ## [1.1.0.5] 11/06/2026
 
 ### Enhanced error handling and diagnostics

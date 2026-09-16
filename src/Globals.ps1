@@ -119,7 +119,7 @@ function Test-ExecutionPolicy
 			{
 				if ($_.Exception.Message -match "Security error")
 				{
-					Write-Log -Level WARN -Message "Security error encountered. Attempting to set execution policy to 'RemoteSigned'..."
+					Write-Log -Level WARNING -Message "Security error encountered. Attempting to set execution policy to 'RemoteSigned'..."
 					try
 					{
 						Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned -Force
@@ -254,7 +254,7 @@ Function Write-Log
 	[CmdletBinding()]
 	Param (
 		[Parameter(Mandatory = $False)]
-		[ValidateSet("INFO", "WARN", "ERROR", "FATAL", "DEBUG")]
+		[ValidateSet("INFO", "WARNING", "ERROR", "FATAL", "DEBUG")]
 		[String]$Level = "INFO",
 		[Parameter(Mandatory = $True)]
 		[string]$Message,
@@ -570,7 +570,7 @@ function ConnectToGraph
 		else
 		{
 			# Log - do not use $_ here as there's no exception, just incomplete context
-			$contextInfo = if ($context) { "Context retrieved but missing required properties (ClientId: $($context.ClientId -ne $null), TenantId: $($context.TenantId -ne $null))" } else { "No context available" }
+			$contextInfo = if ($context) { "Context retrieved but missing required properties (ClientId: $($null -ne $context.ClientId), TenantId: $($null -ne $context.TenantId))" } else { "No context available" }
 			Write-Log -Level ERROR -Message "Failed to connect to Microsoft Graph. Context is incomplete. $contextInfo"
 			
 			# Set state
@@ -815,13 +815,13 @@ function Add-ServicePrincipalPermission
 					else
 					{
 						# Log
-						Write-Log -Level WARN -Message "No App Role found for scope '$Scope' to service '$ServiceType' - skipping"
+						Write-Log -Level WARNING -Message "No App Role found for scope '$Scope' to service '$ServiceType' - skipping"
 					}
 				}
 				else
 				{
 					# Log
-					Write-Log -Level WARN -Message "Skipping empty or whitespace permission"
+					Write-Log -Level WARNING -Message "Skipping empty or whitespace permission"
 				}
 			}
 		}
