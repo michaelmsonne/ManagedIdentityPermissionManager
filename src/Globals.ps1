@@ -9,7 +9,7 @@ $global:darkModeStateUI
 $global:sortedManagedIdentities
 $global:filteredManagedIdentities
 
-$global:FormVersion = "1.1.0.5"
+$global:FormVersion = "1.1.0.6"
 $global:Author = "Michael Morten Sonne"
 $global:ToolName = "Managed Identity Permission Manager"
 $global:AuthorEmail = ""
@@ -528,64 +528,90 @@ function ConnectToGraph
 	
 	# Log
 	Write-Log -Level INFO -Message "Starting to connect to Microsoft Graph..."
+	$connectParams = @{
+		NoWelcome = $true
+		Scopes = 'Application.Read.All', 'AppRoleAssignment.ReadWrite.All'
+		ContextScope = 'Process'
+		ErrorAction = 'Stop'
+	}
 	
-	# Connect with or without tenant ID
-	if ($TenantId)
+	if (-not [string]::IsNullOrWhiteSpace($TenantId))
 	{
+		$connectParams.TenantId = $TenantId
 		Write-Log -Level INFO -Message "Connecting to Microsoft Graph with Tenant ID: $TenantId"
-		Connect-MgGraph -TenantId $TenantId -NoWelcome -Scopes 'Application.Read.All', 'AppRoleAssignment.ReadWrite.All'
 	}
 	else
 	{
 		Write-Log -Level INFO -Message "Connecting to Microsoft Graph without specific Tenant ID"
-		Connect-MgGraph -NoWelcome -Scopes 'Application.Read.All', 'AppRoleAssignment.ReadWrite.All'
 	}
 	
-	# Check if the connection is successful
+	$context = $null
+	$connected = $false
+	
 	try
 	{
-		# Get currect context (if any)
+		Connect-MgGraph @connectParams | Out-Null
 		$context = Get-MgContext
-		
-		# If context exists
-		if ($context -and $context.ClientId -and $context.TenantId)
+		if (($null -ne $context) -and ($null -ne $context.ClientId) -and ($null -ne $context.TenantId))
 		{
-			# Log connection details
-			Write-Log -Level INFO -Message "Connected to Microsoft Graph as '$($context.Account)' (Tenant: '$($context.TenantId)', App: '$($context.AppName)', Auth: $($context.AuthType)/$($context.ContextScope), Token: '$($context.TokenCredentialType)')"
-			
-			# Log granted scopes
-			if ($context.Scopes)
-			{
-				$scopesString = $context.Scopes -join ', '
-				Write-Log -Level INFO -Message "Granted scopes: $scopesString"
-			}
-			else
-			{
-				Write-Log -Level WARNING -Message "No scopes information available in context."
-			}
-			
-			# Set state
-			$global:ConnectedState = $true
+			$connected = $true
 		}
 		else
 		{
-			# Log - do not use $_ here as there's no exception, just incomplete context
-			$contextInfo = if ($context) { "Context retrieved but missing required properties (ClientId: $($null -ne $context.ClientId), TenantId: $($null -ne $context.TenantId))" } else { "No context available" }
-			Write-Log -Level ERROR -Message "Failed to connect to Microsoft Graph. Context is incomplete. $contextInfo"
-			
-			# Set state
-			$global:ConnectedState = $false
+			Write-Log -Level WARNING -Message "Primary sign-in returned no usable Graph context. Trying device authentication fallback."
 		}
 	}
 	catch
 	{
-		# Capture the exception properly to avoid UI event pollution
-		$errorMessage = $_.Exception.Message
-		Write-Log -Level ERROR -Message "Failed to connect to Microsoft Graph. Error: $errorMessage"
-		
-		# Set state
-		$global:ConnectedState = $false
+		Write-Log -Level WARNING -Message "Primary sign-in failed: $($_.Exception.Message). Trying device authentication fallback."
 	}
+	
+	if (-not $connected)
+	{
+		try
+		{
+			Disconnect-MgGraph -ErrorAction SilentlyContinue | Out-Null
+			Connect-MgGraph @connectParams -UseDeviceAuthentication | Out-Null
+			$context = Get-MgContext
+			if (($null -ne $context) -and ($null -ne $context.ClientId) -and ($null -ne $context.TenantId))
+			{
+				$connected = $true
+				Write-Log -Level INFO -Message "Device authentication fallback succeeded."
+			}
+		}
+		catch
+		{
+			Write-Log -Level ERROR -Message "Device authentication fallback failed: $($_.Exception.Message)"
+		}
+	}
+	
+	if ($connected)
+	{
+		Write-Log -Level INFO -Message "Connected to Microsoft Graph as '$($context.Account)' (Tenant: '$($context.TenantId)', App: '$($context.AppName)', Auth: $($context.AuthType)/$($context.ContextScope), Token: '$($context.TokenCredentialType)')"
+		if ($context.Scopes)
+		{
+			$scopesString = $context.Scopes -join ', '
+			Write-Log -Level INFO -Message "Granted scopes: $scopesString"
+		}
+		else
+		{
+			Write-Log -Level WARNING -Message "No scopes information available in context."
+		}
+		if (-not [string]::IsNullOrWhiteSpace($TenantId) -and ($null -ne $context.TenantId) -and ($context.TenantId -ne $TenantId))
+		{
+			Write-Log -Level WARNING -Message "Connected tenant '$($context.TenantId)' is different from requested tenant '$TenantId'."
+		}
+		$global:ConnectedState = $true
+		return
+	}
+	
+	$contextInfo = if ($context) { "Context retrieved but missing required properties (ClientId: $($null -ne $context.ClientId), TenantId: $($null -ne $context.TenantId))" } else { "No context available" }
+	Write-Log -Level ERROR -Message "Failed to connect to Microsoft Graph. Context is incomplete. $contextInfo"
+	if (-not [string]::IsNullOrWhiteSpace($TenantId))
+	{
+		Write-Log -Level WARNING -Message "If sign-in logs show 'Device authentication failed', verify the user can sign in to tenant '$TenantId' and that Conditional Access allows this app/device flow."
+	}
+	$global:ConnectedState = $false
 }
 
 # Function to get current API assignments
@@ -1066,23 +1092,32 @@ function Get-TenantId
 	# Log the received parameters
 	Write-Log -Level INFO -Message "Trying to get tenant data for: '$LookupInputData'"
 	
-	# Check if the input is a domain name or tenant ID
-	if ($LookupInputData -match '^[a-zA-Z0-9-]+\.[a-zA-Z]{2,}$')
+	$trimmedLookupInput = $LookupInputData.Trim()
+	
+	# Check if the input is a tenant ID (GUID) or domain name (supports multi-label domains like *.onmicrosoft.com)
+	if ($trimmedLookupInput -match '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$')
 	{
-		Write-Log -Level INFO -Message "Input '$LookupInputData' is a domain"
+		Write-Log -Level INFO -Message "Input '$trimmedLookupInput' is a tenant ID"
+		
+		# Input is a tenant ID
+		$url = "https://login.microsoftonline.com/$trimmedLookupInput/v2.0/.well-known/openid-configuration"
+	}
+	elseif ($trimmedLookupInput -match '^(?=.{1,255}$)([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}$')
+	{
+		Write-Log -Level INFO -Message "Input '$trimmedLookupInput' is a domain"
 		
 		# Input is a domain name
-		$url = "https://login.microsoftonline.com/$LookupInputData/.well-known/openid-configuration"
+		$url = "https://login.microsoftonline.com/$trimmedLookupInput/.well-known/openid-configuration"
 	}
 	else
 	{
-		Write-Log -Level INFO -Message "Input '$LookupInputData' is a tenant ID"
+		Write-Log -Level WARNING -Message "Input '$trimmedLookupInput' is not recognized as a GUID tenant ID or domain. Trying lookup as provided."
 		
-		# Input is a tenant ID
-		$url = "https://login.microsoftonline.com/$LookupInputData/v2.0/.well-known/openid-configuration"
+		# Best-effort fallback
+		$url = "https://login.microsoftonline.com/$trimmedLookupInput/v2.0/.well-known/openid-configuration"
 	}
 	
-	Write-Log -Level INFO -Message "Sending GET request for '$LookupInputData' - URL: '$url'"
+	Write-Log -Level INFO -Message "Sending GET request for '$trimmedLookupInput' - URL: '$url'"
 	
 	try
 	{
