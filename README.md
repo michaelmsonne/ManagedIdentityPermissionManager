@@ -110,7 +110,27 @@ Ready to take control of your Managed Identity permissions? Download the tool no
 ## Getting started
 
 ### Known bugs
-- None
+- Microsoft Graph authentication UI can be hidden in embedded/hosted PowerShell UI runtimes (for example PowerShell Studio / PrimalScript WinForms host).
+
+### Important authentication warning (Graph WAM change)
+Recent Microsoft Graph PowerShell versions changed interactive authentication behavior on Windows.
+
+- `Connect-MgGraph` now uses Web Account Manager (WAM) by default on Windows.
+- In embedded PowerShell hosts (WinForms/PowerShell Studio), the sign-in window can appear behind other windows or seem to not appear at all.
+
+If the login window is hidden, use this workaround:
+
+1. Open a separate, normal PowerShell terminal window (outside the tool host).
+2. Run `Connect-MgGraph` and complete sign-in there.
+3. Return to Managed Identity Permission Manager and continue.
+
+Example:
+
+```powershell
+Connect-MgGraph -Scopes "Application.Read.All","AppRoleAssignment.ReadWrite.All"
+```
+
+This is a recent Microsoft Graph authentication/UI behavior change and not specific to permission operations in this tool.
 
 ### Prerequisites
 - **PowerShellMicrosoft Graph PowerShell** installed on your machine (Microsoft.Graph.Authentication, Microsoft.Graph.Applications) - minimum v. 2.25.0
@@ -220,6 +240,9 @@ Thanks.
 ## FAQ
 ### Q: How do I connect to Microsoft Graph?
 A: Click on the `Connect to Microsoft Graph` button and authenticate using your credentials.
+
+### Q: Why do I not see the Microsoft Graph login window in PowerShell Studio / WinForms host?
+A: This is related to recent Graph WAM authentication changes on Windows. In embedded hosts, the sign-in UI can be hidden behind other windows. Open a separate PowerShell terminal, run `Connect-MgGraph`, complete sign-in, then return to this tool. You can after here, fine connect to another tenant too via the tool... The release notes are quite clear for version 2.34.0 of the SDK released in December 2025: https://github.com/microsoftgraph/msgraph-sdk-powershell/releases#release-v2.34.0
 
 ### Q: Can I manage permissions for multiple services at once?
 A: No, you need to select a specific service to manage permissions.
