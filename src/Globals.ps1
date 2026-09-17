@@ -409,10 +409,11 @@ function Get-ManagedIdentityCount
 # Validate the current PowerShell modules required to execute this tool
 function Test-Modules
 {
-	# Array of modules needed with minimum versions
+	# Pinned to a pre-2.34.0 release so Connect-MgGraph always uses the classic browser popup,
+	# not the OS WAM broker (which requires a parent window handle this WinForms host cannot provide).
 	$requiredModules = @(
-		@{ Name = "Microsoft.Graph.Authentication"; MinVersion = "2.25.0" },
-		@{ Name = "Microsoft.Graph.Applications"; MinVersion = "2.25.0" }
+		@{ Name = "Microsoft.Graph.Authentication"; Version = "2.32.0" },
+		@{ Name = "Microsoft.Graph.Applications"; Version = "2.32.0" }
 	)
 	
 	# Log
@@ -442,53 +443,46 @@ function Test-Modules
 		{
 			Write-Log -Level WARNING -Message "  $mismatch"
 		}
-		Write-Log -Level WARNING -Message "This may cause 'Could not load assembly' errors. Consider running: Update-Module Microsoft.Graph -Force"
+		Write-Log -Level WARNING -Message "This tool pins an exact version below, so this is informational only."
 	}
 	
 	$modulesToInstall = @()
 	foreach ($module in $requiredModules)
 	{
-		Write-Log -Level INFO -Message "Checking module '$($module.Name)'..."
+		Write-Log -Level INFO -Message "Checking module '$($module.Name)' for pinned version '$($module.Version)'..."
 		$installedVersions = Get-Module -ListAvailable $module.Name
-		if ($installedVersions)
+		
+		# Check if Beta version of the module is installed
+		$isBetaModule = $installedVersions | Where-Object { $_.Name -eq $module.Name -and ($_.Path -like "*Beta*" -or $_.Name -like "*Beta*") }
+		if ($isBetaModule)
 		{
-			# Check if Beta version of the module is installed
-			$isBetaModule = $installedVersions | Where-Object { $_.Name -eq $module.Name -and ($_.Path -like "*Beta*" -or $_.Name -like "*Beta*") }
-			if ($isBetaModule)
-			{
-				Write-Log -Level ERROR -Message "Beta version of module '$($module.Name)' is installed. Exiting to avoid conflicts."
-				throw "Beta version of module '$($module.Name)' detected. Please uninstall the Beta module and re-run the script."
-			}
-			
-			# Check if installed version meets the minimum version requirement
-			if ($installedVersions[0].Version -lt [version]$module.MinVersion)
-			{
-				Write-Log -Level INFO -Message "New version required for module '$($module.Name)'. Current installed version: $($installedVersions[0].Version), required minimum version: $($module.MinVersion)"
-				$modulesToInstall += $module.Name
-			}
-			else
-			{
-				Write-Log -Level INFO -Message "Module '$($module.Name)' meets the minimum version requirement. Current version: $($installedVersions[0].Version)"
-				Import-Module $module.Name -ErrorAction Stop
-				Write-Log -Level INFO -Message "Importing module '$($module.Name)'..."
-			}
+			Write-Log -Level ERROR -Message "Beta version of module '$($module.Name)' is installed. Exiting to avoid conflicts."
+			throw "Beta version of module '$($module.Name)' detected. Please uninstall the Beta module and re-run the script."
+		}
+		
+		$hasPinnedVersion = $installedVersions | Where-Object { $_.Version -eq [version]$module.Version }
+		if ($hasPinnedVersion)
+		{
+			# Import the exact pinned version so side-by-side newer versions can't be picked instead
+			Import-Module -Name $module.Name -RequiredVersion $module.Version -Force -ErrorAction Stop
+			Write-Log -Level INFO -Message "Imported pinned version '$($module.Version)' of module '$($module.Name)'."
 		}
 		else
 		{
-			Write-Log -Level INFO -Message "Module '$($module.Name)' is not installed."
-			$modulesToInstall += $module.Name
+			Write-Log -Level INFO -Message "Pinned version '$($module.Version)' of module '$($module.Name)' is not installed."
+			$modulesToInstall += $module
 		}
 	}
 	
 	if ($modulesToInstall.Count -gt 0)
 	{
-		Write-Log -Level INFO -Message "Missing required PowerShell modules. Prompting for installation..."
+		Write-Log -Level INFO -Message "Missing required pinned PowerShell modules. Prompting for installation..."
 		
 		# Concatenate module names into a single string
-		$modulesList = $modulesToInstall -join ", "
+		$modulesList = ($modulesToInstall | ForEach-Object { "$($_.Name) v$($_.Version)" }) -join ", "
 				
 		# Aks if the user will install needed modules
-		$ConfirmInstallMissingPowerShellModule = Show-MsgBox -Prompt "The following required PowerShell modules are missing:`r`n`r`n$modulesList.`r`n`r`nWould you like to install these modules now?" -Title "Missing required PowerShell modules" -Icon Question -BoxType YesNo -DefaultButton 2
+		$ConfirmInstallMissingPowerShellModule = Show-MsgBox -Prompt "The following required PowerShell module versions are missing:`r`n`r`n$modulesList.`r`n`r`nWould you like to install these now?" -Title "Missing required PowerShell modules" -Icon Question -BoxType YesNo -DefaultButton 2
 		
 		# Get confirmation
 		If ($ConfirmInstallMissingPowerShellModule -eq "Yes")
@@ -499,10 +493,55 @@ function Test-Modules
 			Write-Log -Level INFO -Message "Installing modules..."
 			foreach ($module in $modulesToInstall)
 			{
-				Write-Log -Level INFO -Message "Installing module '$module'..."
-				Install-Module $module -Scope CurrentUser -Force -ErrorAction Stop
-				Write-Log -Level INFO -Message "Importing module '$module'..."
-				Import-Module $module -ErrorAction Stop
+				# A previous interrupted/failed install can leave an empty or partial version folder behind,
+				# which makes PowerShellGet fail with "Could not find file '...\<Version>'" on every retry.
+				# Check every user-scope module path from $env:PSModulePath (Desktop and Core layouts differ).
+				$userModuleBasePaths = $env:PSModulePath -split ';' | Where-Object { $_ -like "$HOME*" }
+				foreach ($basePath in $userModuleBasePaths)
+				{
+					$staleVersionPath = Join-Path -Path (Join-Path -Path $basePath -ChildPath $module.Name) -ChildPath $module.Version
+					if (Test-Path -Path $staleVersionPath)
+					{
+						$manifestPath = Join-Path -Path $staleVersionPath -ChildPath "$($module.Name).psd1"
+						if (-not (Test-Path -Path $manifestPath))
+						{
+							Write-Log -Level WARNING -Message "Found an incomplete module folder from a previous failed install: '$staleVersionPath'. Removing it before retrying."
+							Remove-Item -Path $staleVersionPath -Recurse -Force -ErrorAction SilentlyContinue
+						}
+					}
+				}
+
+				Write-Log -Level INFO -Message "Installing module '$($module.Name)' version '$($module.Version)'. This can take a moment - no progress bar is shown in this host..."
+				try
+				{
+					# PowerShellGet's progress/console UI calls can abort mid-extraction in this WinForms
+					# host (no real console), leaving a broken version folder. Installing from a real
+					# external PowerShell process avoids that entirely.
+					$installCommand = "`$ProgressPreference = 'SilentlyContinue'; Install-Module -Name '$($module.Name)' -RequiredVersion '$($module.Version)' -Scope CurrentUser -Force -AllowClobber -ErrorAction Stop"
+					$installProcess = Start-Process -FilePath "powershell.exe" -ArgumentList @("-NoLogo", "-NoProfile", "-Command", $installCommand) -WindowStyle Hidden -PassThru -Wait
+					if ($installProcess.ExitCode -ne 0)
+					{
+						throw "External install process exited with code '$($installProcess.ExitCode)'."
+					}
+					Write-Log -Level INFO -Message "Installed module '$($module.Name)' version '$($module.Version)'."
+				}
+				catch
+				{
+					Write-Log -Level ERROR -Message "Failed to install module '$($module.Name)' version '$($module.Version)': $($_.Exception.GetType().FullName) - $($_.Exception.Message)"
+					throw
+				}
+
+				Write-Log -Level INFO -Message "Importing module '$($module.Name)' version '$($module.Version)'..."
+				try
+				{
+					Import-Module -Name $module.Name -RequiredVersion $module.Version -Force -ErrorAction Stop
+					Write-Log -Level INFO -Message "Imported module '$($module.Name)' version '$($module.Version)'."
+				}
+				catch
+				{
+					Write-Log -Level ERROR -Message "Failed to import module '$($module.Name)' version '$($module.Version)' after install: $($_.Exception.GetType().FullName) - $($_.Exception.Message)"
+					throw
+				}
 			}
 			Write-Log -Level INFO -Message "Modules installed."
 		}
@@ -516,7 +555,7 @@ function Test-Modules
 	}
 	
 	# Log
-	Write-Log -Level INFO -Message "Check for needed PowerShell Modules complete"
+	Write-Log -Level INFO -Message "Check for needed PowerShell Modules completed"
 }
 
 # Function to connect to Microsoft Graph
@@ -698,8 +737,28 @@ function Add-ServicePrincipalPermission
 		[string]$ManagedIdentityID,
 		[string]$Permissions,
 		[string]$ServiceType,
-		[bool]$clearExistingPermissions
+		[bool]$clearExistingPermissions,
+		[switch]$ReturnResults
 	)
+
+	$operationResults = New-Object 'System.Collections.Generic.List[object]'
+
+	function Add-OperationResult
+	{
+		param (
+			[string]$Scope,
+			[string]$Status,
+			[string]$Message
+		)
+
+		[void]$operationResults.Add([PSCustomObject]@{
+			ManagedIdentityID = $ManagedIdentityID
+			ServiceType		   = $ServiceType
+			Scope			   = $Scope
+			Status			   = $Status
+			Message			   = $Message
+		})
+	}
 	
 	try
 	{
@@ -711,6 +770,11 @@ function Add-ServicePrincipalPermission
 		if ($ServiceType -eq "All services")
 		{
 			Show-MsgBox -Title "Invalid Selection" -Prompt "Please select a specific service. Managing permissions for 'All services' is not possible." -Icon Critical -BoxType OKOnly
+			Add-OperationResult -Scope "" -Status "Failed" -Message "Service selection 'All services' is not supported for assignment."
+			if ($ReturnResults.IsPresent)
+			{
+				return @($operationResults)
+			}
 			return
 		}
 		
@@ -721,6 +785,11 @@ function Add-ServicePrincipalPermission
 		if ($null -eq $servicePrincipal)
 		{
 			Write-Log -Level INFO -Message "No service principal found for ServiceType '$ServiceType'."
+			Add-OperationResult -Scope "" -Status "Failed" -Message "Service principal '$ServiceType' was not found in cache."
+			if ($ReturnResults.IsPresent)
+			{
+				return @($operationResults)
+			}
 			return
 		}
 		
@@ -810,13 +879,14 @@ function Add-ServicePrincipalPermission
 						{
 							# Log
 							Write-Log -Level INFO -Message "The scope '$Scope' is already assigned for service '$ServiceType' - skipped"
+							Add-OperationResult -Scope $Scope -Status "AlreadyAssigned" -Message "The scope is already assigned."
 						}
 						else
 						{
 							try
 							{
 								# Process
-								New-MgServicePrincipalAppRoleAssignment -PrincipalId $ManagedIdentityID -ServicePrincipalId $ManagedIdentityID -ResourceId $servicePrincipal.Id -AppRoleId $AppRole.Id -ErrorAction Stop
+								$null = New-MgServicePrincipalAppRoleAssignment -PrincipalId $ManagedIdentityID -ServicePrincipalId $ManagedIdentityID -ResourceId $servicePrincipal.Id -AppRoleId $AppRole.Id -ErrorAction Stop
 								
 								# Validate
 								$existingAppRole = Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $ManagedIdentityID -All | Where-Object { $_.ResourceId -eq $servicePrincipal.Id -and $_.AppRoleId -eq $AppRole.Id }
@@ -824,17 +894,20 @@ function Add-ServicePrincipalPermission
 								{
 									# Log
 									Write-Log -Level INFO -Message "The scope '$Scope' has been assigned to service '$ServiceType'"
+									Add-OperationResult -Scope $Scope -Status "Added" -Message "The scope was assigned successfully."
 								}
 								else
 								{
 									# Log
 									Write-Log -Level INFO -Message "The scope '$Scope' could not be assigned for service '$ServiceType': $($_.Exception.Message)"
+									Add-OperationResult -Scope $Scope -Status "Failed" -Message "The scope could not be validated after assignment."
 								}
 							}
 							catch
 							{
 								# Log
 								Write-Log -Level ERROR -Message "Error assigning the scope '$Scope' for service '$ServiceType': $($_.Exception.Message)"
+								Add-OperationResult -Scope $Scope -Status "Failed" -Message "Error assigning scope: $($_.Exception.Message)"
 							}
 						}
 					}
@@ -842,12 +915,14 @@ function Add-ServicePrincipalPermission
 					{
 						# Log
 						Write-Log -Level WARNING -Message "No App Role found for scope '$Scope' to service '$ServiceType' - skipping"
+						Add-OperationResult -Scope $Scope -Status "NotFound" -Message "No app role found for this scope in the selected service."
 					}
 				}
 				else
 				{
 					# Log
 					Write-Log -Level WARNING -Message "Skipping empty or whitespace permission"
+					Add-OperationResult -Scope "" -Status "Skipped" -Message "Skipped empty or whitespace permission entry."
 				}
 			}
 		}
@@ -855,12 +930,19 @@ function Add-ServicePrincipalPermission
 		{
 			# Log
 			Write-Log -Level INFO -Message "Permissions parameter is empty or null"
+			Add-OperationResult -Scope "" -Status "Skipped" -Message "Permissions parameter was empty."
 		}
 	}
 	catch
 	{
 		# Log
 		Write-Log -Level ERROR -Message "Error adding service '$ServiceType' permission '$Permissions': $($_.Exception.Message)"
+		Add-OperationResult -Scope "" -Status "Failed" -Message "Unhandled error while assigning permissions: $($_.Exception.Message)"
+	}
+
+	if ($ReturnResults.IsPresent)
+	{
+		return @($operationResults)
 	}
 }
 
@@ -1282,6 +1364,10 @@ function Import-ManagedIdentityPermissions
 				ServicesProcessed    = 0
 				PermissionsAttempted = 0
 				SkippedRows		     = 0
+				PermissionsAdded	 = 0
+				PermissionsAlreadyAssigned = 0
+				PermissionsFailed	 = 0
+				PermissionResults	 = New-Object 'System.Collections.Generic.List[object]'
 			}
 		}
 		
@@ -1300,6 +1386,7 @@ function Import-ManagedIdentityPermissions
 			})
 		
 		$rowsProcessed = @($validRows).Count
+		$permissionResults = @()
 		$summary = [PSCustomObject]@{
 			RowsRead			 = $rowsRead
 			RowsProcessed	     = $rowsProcessed
@@ -1307,10 +1394,15 @@ function Import-ManagedIdentityPermissions
 			ServicesProcessed    = 0
 			PermissionsAttempted = 0
 			SkippedRows		     = [Math]::Max(0, ($rowsRead - $rowsProcessed))
+			PermissionsAdded	 = 0
+			PermissionsAlreadyAssigned = 0
+			PermissionsFailed	 = 0
+			PermissionResults	 = @()
 		}
 		
 		if ($validRows.Count -eq 0)
 		{
+			$summary.PermissionResults = @($permissionResults)
 			Write-Log -Level WARNING -Message "No valid import rows were found in '$ImportFilePath'."
 			return $summary
 		}
@@ -1371,6 +1463,17 @@ function Import-ManagedIdentityPermissions
 					if ($null -eq $servicePrincipal)
 					{
 						Write-Log -Level WARNING -Message "Could not resolve service principal for resource '$resourceName'. Skipping these permissions for Managed Identity '$managedIdentityID'."
+						foreach ($scope in $scopes)
+						{
+							[void]$permissionResults.Add([PSCustomObject]@{
+								ManagedIdentityID = $managedIdentityID
+								ServiceType		   = $resourceName
+								Scope			   = $scope
+								Status			   = "Failed"
+								Message			   = "Service principal could not be resolved for this resource."
+							})
+							$summary.PermissionsFailed++
+						}
 						continue
 					}
 					
@@ -1379,15 +1482,120 @@ function Import-ManagedIdentityPermissions
 				
 				$permissionsToAssign = $scopes -join ", "
 				Write-Log -Level INFO -Message "Importing permissions for Managed Identity '$managedIdentityID' on service '$resourceName': '$permissionsToAssign'"
-				
-				Add-ServicePrincipalPermission -ManagedIdentityID $managedIdentityID -Permissions $permissionsToAssign -ServiceType $resourceName -clearExistingPermissions $false
+
+				try
+				{
+					$servicePrincipal = $global:ServicePrincipalData[$resourceName]
+					$scopeToRoleId = @{ }
+					foreach ($appRole in @($servicePrincipal.AppRoles))
+					{
+						if (-not [string]::IsNullOrWhiteSpace($appRole.Value))
+						{
+							$scopeToRoleId[$appRole.Value] = [string]$appRole.Id
+						}
+					}
+
+					$beforeAssignmentsRaw = @(Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $managedIdentityID -All -ErrorAction Stop)
+					$beforeRoleIds = @{ }
+					foreach ($assignment in $beforeAssignmentsRaw)
+					{
+						if ([string]$assignment.ResourceId -eq [string]$servicePrincipal.Id)
+						{
+							$beforeRoleIds[[string]$assignment.AppRoleId] = $true
+						}
+					}
+
+					# Execute assignment using the existing function, then verify final state directly.
+					$null = Add-ServicePrincipalPermission -ManagedIdentityID $managedIdentityID -Permissions $permissionsToAssign -ServiceType $resourceName -clearExistingPermissions $false
+
+					$afterAssignmentsRaw = @(Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $managedIdentityID -All -ErrorAction Stop)
+					$afterRoleIds = @{ }
+					foreach ($assignment in $afterAssignmentsRaw)
+					{
+						if ([string]$assignment.ResourceId -eq [string]$servicePrincipal.Id)
+						{
+							$afterRoleIds[[string]$assignment.AppRoleId] = $true
+						}
+					}
+
+					foreach ($scope in $scopes)
+					{
+						if (-not $scopeToRoleId.ContainsKey($scope))
+						{
+							$permissionResults += [PSCustomObject]@{
+								ManagedIdentityID = $managedIdentityID
+								ServiceType		   = $resourceName
+								Scope			   = $scope
+								Status			   = "Failed"
+								Message			   = "No app role was found for this scope on the target service principal."
+							}
+							$summary.PermissionsFailed++
+							continue
+						}
+
+						$roleId = $scopeToRoleId[$scope]
+						$wasAssignedBefore = $beforeRoleIds.ContainsKey($roleId)
+						$isAssignedAfter = $afterRoleIds.ContainsKey($roleId)
+
+						if ($wasAssignedBefore)
+						{
+							$permissionResults += [PSCustomObject]@{
+								ManagedIdentityID = $managedIdentityID
+								ServiceType		   = $resourceName
+								Scope			   = $scope
+								Status			   = "AlreadyAssigned"
+								Message			   = "Scope was already assigned before import for this service."
+							}
+							$summary.PermissionsAlreadyAssigned++
+						}
+						elseif ($isAssignedAfter)
+						{
+							$permissionResults += [PSCustomObject]@{
+								ManagedIdentityID = $managedIdentityID
+								ServiceType		   = $resourceName
+								Scope			   = $scope
+								Status			   = "Added"
+								Message			   = "Scope was assigned successfully during import."
+							}
+							$summary.PermissionsAdded++
+						}
+						else
+						{
+							$permissionResults += [PSCustomObject]@{
+								ManagedIdentityID = $managedIdentityID
+								ServiceType		   = $resourceName
+								Scope			   = $scope
+								Status			   = "Failed"
+								Message			   = "Scope was not present after import verification."
+							}
+							$summary.PermissionsFailed++
+						}
+					}
+				}
+				catch
+				{
+					Write-Log -Level ERROR -Message "Failed to process import results for Managed Identity '$managedIdentityID' on service '$resourceName': $($_.Exception.Message)"
+					foreach ($scope in $scopes)
+					{
+						$permissionResults += [PSCustomObject]@{
+							ManagedIdentityID = $managedIdentityID
+							ServiceType		   = $resourceName
+							Scope			   = $scope
+							Status			   = "Failed"
+							Message			   = "Result processing error: $($_.Exception.Message)"
+						}
+						$summary.PermissionsFailed++
+					}
+				}
 				
 				$summary.ServicesProcessed++
 				$summary.PermissionsAttempted += $scopes.Count
 			}
 		}
+
+		$summary.PermissionResults = @($permissionResults)
 		
-		Write-Log -Level INFO -Message "Completed import from '$ImportFilePath'. Rows read: '$($summary.RowsRead)', valid rows: '$($summary.RowsProcessed)', identities: '$($summary.IdentitiesProcessed)', services: '$($summary.ServicesProcessed)', permissions attempted: '$($summary.PermissionsAttempted)'."
+		Write-Log -Level INFO -Message "Completed import from '$ImportFilePath'. Rows read: '$($summary.RowsRead)', valid rows: '$($summary.RowsProcessed)', identities: '$($summary.IdentitiesProcessed)', services: '$($summary.ServicesProcessed)', permissions attempted: '$($summary.PermissionsAttempted)', added: '$($summary.PermissionsAdded)', already assigned: '$($summary.PermissionsAlreadyAssigned)', failed: '$($summary.PermissionsFailed)'."
 		return $summary
 	}
 	catch
