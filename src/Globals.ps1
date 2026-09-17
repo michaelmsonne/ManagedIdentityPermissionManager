@@ -1255,3 +1255,144 @@ function Export-AllManagedIdentityPermissions
 		Write-Log -Level ERROR -Message "Error exporting all permissions: $($_.Exception.Message)"
 	}
 }
+
+function Import-ManagedIdentityPermissions
+{
+	param (
+		[string]$ImportFilePath,
+		[bool]$ClearExistingPermissions = $false
+	)
+	
+	try
+	{
+		if (-not (Test-Path -Path $ImportFilePath -PathType Leaf))
+		{
+			throw "The selected import file was not found at '$ImportFilePath'."
+		}
+		
+		$importRows = @(Import-Csv -Path $ImportFilePath)
+		$rowsRead = @($importRows).Count
+		if ($rowsRead -eq 0)
+		{
+			Write-Log -Level WARNING -Message "The import file '$ImportFilePath' does not contain any rows."
+			return [PSCustomObject]@{
+				RowsRead			 = 0
+				RowsProcessed	     = 0
+				IdentitiesProcessed  = 0
+				ServicesProcessed    = 0
+				PermissionsAttempted = 0
+				SkippedRows		     = 0
+			}
+		}
+		
+		$requiredColumns = @("ManagedIdentityID", "ManagedIdentityName", "ResourceName", "AppRoleScope")
+		$availableColumns = @($importRows[0].PSObject.Properties.Name)
+		$missingColumns = $requiredColumns | Where-Object { $_ -notin $availableColumns }
+		if ($missingColumns.Count -gt 0)
+		{
+			throw "The import file is missing required columns: '$($missingColumns -join ", ")'."
+		}
+		
+		$validRows = @($importRows | Where-Object {
+				-not [string]::IsNullOrWhiteSpace($_.ManagedIdentityID) -and
+				-not [string]::IsNullOrWhiteSpace($_.ResourceName) -and
+				-not [string]::IsNullOrWhiteSpace($_.AppRoleScope)
+			})
+		
+		$rowsProcessed = @($validRows).Count
+		$summary = [PSCustomObject]@{
+			RowsRead			 = $rowsRead
+			RowsProcessed	     = $rowsProcessed
+			IdentitiesProcessed  = 0
+			ServicesProcessed    = 0
+			PermissionsAttempted = 0
+			SkippedRows		     = [Math]::Max(0, ($rowsRead - $rowsProcessed))
+		}
+		
+		if ($validRows.Count -eq 0)
+		{
+			Write-Log -Level WARNING -Message "No valid import rows were found in '$ImportFilePath'."
+			return $summary
+		}
+		
+		$identityGroups = $validRows | Group-Object -Property ManagedIdentityID
+		foreach ($identityGroup in $identityGroups)
+		{
+			$managedIdentityID = $identityGroup.Name.Trim()
+			if ([string]::IsNullOrWhiteSpace($managedIdentityID))
+			{
+				continue
+			}
+			
+			try
+			{
+				$null = Get-MgServicePrincipal -ServicePrincipalId $managedIdentityID -ErrorAction Stop
+			}
+			catch
+			{
+				Write-Log -Level WARNING -Message "Managed Identity '$managedIdentityID' does not exist or cannot be read in this tenant. Skipping import for this identity."
+				continue
+			}
+			
+			if ($ClearExistingPermissions -eq $true)
+			{
+				Write-Log -Level INFO -Message "Reset mode is enabled. Removing current assignments for Managed Identity '$managedIdentityID' before import."
+				Remove-AllServicePrincipalPermissions -ManagedIdentityID $managedIdentityID
+			}
+			
+			$summary.IdentitiesProcessed++
+			
+			$serviceGroups = $identityGroup.Group | Group-Object -Property ResourceName
+			foreach ($serviceGroup in $serviceGroups)
+			{
+				$resourceName = $serviceGroup.Name.Trim()
+				if ([string]::IsNullOrWhiteSpace($resourceName))
+				{
+					continue
+				}
+				
+				$scopes = @(
+					$serviceGroup.Group |
+					ForEach-Object { $_.AppRoleScope } |
+					Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+					ForEach-Object { $_.Trim() } |
+					Sort-Object -Unique
+				)
+				
+				if ($scopes.Count -eq 0)
+				{
+					continue
+				}
+				
+				if (-not $global:ServicePrincipalData.ContainsKey($resourceName))
+				{
+					$escapedResourceName = $resourceName.Replace("'", "''")
+					$servicePrincipal = Get-MgServicePrincipal -Filter "DisplayName eq '$escapedResourceName'" -Property "id,appId,displayName,appRoles,oauth2PermissionScopes,resourceSpecificApplicationPermissions" -ErrorAction Stop | Select-Object -First 1
+					if ($null -eq $servicePrincipal)
+					{
+						Write-Log -Level WARNING -Message "Could not resolve service principal for resource '$resourceName'. Skipping these permissions for Managed Identity '$managedIdentityID'."
+						continue
+					}
+					
+					$global:ServicePrincipalData[$resourceName] = $servicePrincipal
+				}
+				
+				$permissionsToAssign = $scopes -join ", "
+				Write-Log -Level INFO -Message "Importing permissions for Managed Identity '$managedIdentityID' on service '$resourceName': '$permissionsToAssign'"
+				
+				Add-ServicePrincipalPermission -ManagedIdentityID $managedIdentityID -Permissions $permissionsToAssign -ServiceType $resourceName -clearExistingPermissions $false
+				
+				$summary.ServicesProcessed++
+				$summary.PermissionsAttempted += $scopes.Count
+			}
+		}
+		
+		Write-Log -Level INFO -Message "Completed import from '$ImportFilePath'. Rows read: '$($summary.RowsRead)', valid rows: '$($summary.RowsProcessed)', identities: '$($summary.IdentitiesProcessed)', services: '$($summary.ServicesProcessed)', permissions attempted: '$($summary.PermissionsAttempted)'."
+		return $summary
+	}
+	catch
+	{
+		Write-Log -Level ERROR -Message "Error importing managed identity permissions from '$ImportFilePath': $($_.Exception.Message)"
+		throw
+	}
+}
